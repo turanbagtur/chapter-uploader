@@ -1,0 +1,427 @@
+# Turkish Translation for Manga Chapter Uploader
+# Copyright (C) 2024 Solderet x Gemini
+msgid ""
+msgstr ""
+"Project-Id-Version: Manga Chapter Uploader 1.2.0\n"
+"Language: tr_TR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Meta Box plugin is not installed. %s will use standard WordPress meta fields instead."
+msgstr "Meta Box eklentisi yüklü değil. %s bunun yerine standart WordPress meta alanlarını kullanacak."
+
+msgid "The \"manga\" post type is not registered. Please ensure your theme supports manga functionality."
+msgstr "\"manga\" gönderi türü kayıtlı değil. Lütfen temanızın manga işlevselliğini desteklediğinden emin olun."
+
+msgid "Manga Chapter Uploader"
+msgstr "Manga Bölüm Yükleyici"
+
+msgid "Chapter Uploader"
+msgstr "Bölüm Yükleyici"
+
+msgid "Statistics"
+msgstr "İstatistikler"
+
+msgid "Settings"
+msgstr "Ayarlar"
+
+msgid "Uploading..."
+msgstr "Yükleniyor..."
+
+msgid "Processing..."
+msgstr "İşleniyor..."
+
+msgid "Complete!"
+msgstr "Tamamlandı!"
+
+msgid "Error occurred"
+msgstr "Hata oluştu"
+
+msgid "Are you sure you want to cleanup orphaned media? This action cannot be undone."
+msgstr "Sahipsiz medya dosyalarını temizlemek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+
+msgid "Author: %s"
+msgstr "Yazar: %s"
+
+msgid "MangaReader theme compatible single and multiple manga chapter upload plugin with advanced features."
+msgstr "Gelişmiş özelliklerle MangaReader teması uyumlu tekli ve çoklu manga bölüm yükleme eklentisi."
+
+msgid "Recent Uploads"
+msgstr "Son Yüklemeler"
+
+msgid "ago"
+msgstr "önce"
+
+msgid "Single Chapter Upload"
+msgstr "Tekli Bölüm Yükleme"
+
+msgid "Multiple Chapters (ZIP)"
+msgstr "Çoklu Bölüm (ZIP)"
+
+msgid "Fetch from Blogger"
+msgstr "Blogger'dan Çek"
+
+msgid "Chapter Number"
+msgstr "Bölüm Numarası"
+
+msgid "Use decimal numbers for special chapters (e.g., 12.5)"
+msgstr "Özel bölümler için ondalık sayılar kullanın (örn. 12.5)"
+
+msgid "Chapter Title"
+msgstr "Bölüm Başlığı"
+
+msgid "Optional chapter title"
+msgstr "Opsiyonel bölüm başlığı"
+
+msgid "Manga Series"
+msgstr "Manga Serisi"
+
+msgid "-- Select Manga --"
+msgstr "-- Manga Seçin --"
+
+msgid "Current chapters:"
+msgstr "Mevcut bölümler:"
+
+msgid "Chapter Prefix"
+msgstr "Bölüm Ön Eki"
+
+msgid "Bölüm"
+msgstr "Bölüm"
+
+msgid "Chapter"
+msgstr "Chapter"
+
+msgid "Choose prefix for chapter title format"
+msgstr "Bölüm başlığı formatı için ön ek seçin"
+
+msgid "Default Chapter Prefix"
+msgstr "Varsayılan Bölüm Ön Eki"
+
+msgid "Default prefix for chapter titles"
+msgstr "Bölüm başlıkları için varsayılan ön ek"
+
+msgid "Chapter Category"
+msgstr "Bölüm Kategorisi"
+
+msgid "-- Select Category (Optional) --"
+msgstr "-- Kategori Seçin (Opsiyonel) --"
+
+msgid "Chapter Images"
+msgstr "Bölüm Resimleri"
+
+msgid "Drag images here or click to select"
+msgstr "Resimleri buraya sürükleyin veya seçmek için tıklayın"
+
+msgid "Max file size: %s | Allowed types: %s"
+msgstr "Maksimum dosya boyutu: %s | İzin verilen türler: %s"
+
+msgid "Preview:"
+msgstr "Önizleme:"
+
+msgid "Download Link"
+msgstr "İndirme Bağlantısı"
+
+msgid "https://example.com/chapter-download"
+msgstr "https://ornek.com/bolum-indirme"
+
+msgid "Optional external download link for this chapter"
+msgstr "Bu bölüm için opsiyonel harici indirme bağlantısı"
+
+msgid "Photon CDN Status"
+msgstr "Photon CDN Durumu"
+
+msgid "Default"
+msgstr "Varsayılan"
+
+msgid "Enable"
+msgstr "Etkin"
+
+msgid "Disable"
+msgstr "Devre Dışı"
+
+msgid "Control Photon CDN usage for chapter images"
+msgstr "Bölüm resimleri için Photon CDN kullanımını kontrol et"
+
+msgid "Upload Chapter"
+msgstr "Bölümü Yükle"
+
+msgid "Multiple Chapters Upload (ZIP)"
+msgstr "Çoklu Bölüm Yükleme (ZIP)"
+
+msgid "ZIP Structure Requirements:"
+msgstr "ZIP Yapısı Gereksinimleri:"
+
+msgid "Each folder name should start with chapter number (e.g., \"1\", \"2.5\", \"10-Title\")"
+msgstr "Her klasör adı bölüm numarası ile başlamalıdır (örn. \"1\", \"2.5\", \"10-Başlık\")"
+
+msgid "Images should be in JPG, PNG, GIF, or WebP format"
+msgstr "Resimler JPG, PNG, GIF veya WebP formatında olmalıdır"
+
+msgid "Images will be sorted alphabetically within each chapter"
+msgstr "Resimler her bölüm içinde alfabetik olarak sıralanacaktır"
+
+msgid "ZIP File"
+msgstr "ZIP Dosyası"
+
+msgid "Maximum ZIP size: %s"
+msgstr "Maksimum ZIP boyutu: %s"
+
+msgid "Chapter Category (Optional)"
+msgstr "Bölüm Kategorisi (Opsiyonel)"
+
+msgid "-- Select Category --"
+msgstr "-- Kategori Seçin --"
+
+msgid "Upload ZIP and Process"
+msgstr "ZIP Yükle ve İşle"
+
+msgid "Fetch Chapter from Blogger"
+msgstr "Blogger'dan Bölüm Çek"
+
+msgid "Supported Sites:"
+msgstr "Desteklenen Siteler:"
+
+msgid "Blogger.com websites"
+msgstr "Blogger.com web siteleri"
+
+msgid "Sites with standard image layouts"
+msgstr "Standart resim düzenine sahip siteler"
+
+msgid "Lazy-loading and modern image formats supported"
+msgstr "Lazy-loading ve modern resim formatları destekleniyor"
+
+msgid "Blogger URL"
+msgstr "Blogger URL'si"
+
+msgid "https://example.blogspot.com/chapter-1"
+msgstr "https://ornek.blogspot.com/bolum-1"
+
+msgid "Test URL"
+msgstr "URL'yi Test Et"
+
+msgid "Chapter Number (Auto-detect)"
+msgstr "Bölüm Numarası (Otomatik Algıla)"
+
+msgid "Will be auto-detected from URL"
+msgstr "URL'den otomatik olarak algılanacak"
+
+msgid "Leave empty for auto-detection or enter manually"
+msgstr "Otomatik algılama için boş bırakın veya manuel girin"
+
+msgid "Fetch from Blogger"
+msgstr "Blogger'dan Çek"
+
+msgid "Upload Status:"
+msgstr "Yükleme Durumu:"
+
+msgid "Debug Information:"
+msgstr "Debug Bilgisi:"
+
+msgid "Upload Statistics"
+msgstr "Yükleme İstatistikleri"
+
+msgid "Total Chapters"
+msgstr "Toplam Bölümler"
+
+msgid "Total Images"
+msgstr "Toplam Resimler"
+
+msgid "Total Size"
+msgstr "Toplam Boyut"
+
+msgid "This Month"
+msgstr "Bu Ay"
+
+msgid "Cleanup Orphaned Media"
+msgstr "Sahipsiz Medyaları Temizle"
+
+msgid "Refresh Statistics"
+msgstr "İstatistikleri Yenile"
+
+msgid "Settings saved successfully!"
+msgstr "Ayarlar başarıyla kaydedildi!"
+
+msgid "Language"
+msgstr "Dil"
+
+msgid "Select the plugin interface language"
+msgstr "Eklenti arayüz dilini seçin"
+
+msgid "Maximum Upload Size"
+msgstr "Maksimum Yükleme Boyutu"
+
+msgid "Maximum file size for individual images"
+msgstr "Tekil resimler için maksimum dosya boyutu"
+
+msgid "Auto Cleanup"
+msgstr "Otomatik Temizlik"
+
+msgid "Automatically cleanup orphaned media files daily"
+msgstr "Sahipsiz medya dosyalarını her gün otomatik olarak temizle"
+
+msgid "Statistics Tracking"
+msgstr "İstatistik Takibi"
+
+msgid "Enable upload statistics tracking"
+msgstr "Yükleme istatistik takibini etkinleştir"
+
+msgid "Image Quality"
+msgstr "Resim Kalitesi"
+
+msgid "Original (100%)"
+msgstr "Orijinal (100%)"
+
+msgid "High Quality (95%)"
+msgstr "Yüksek Kalite (95%)"
+
+msgid "Good Quality (90%)"
+msgstr "İyi Kalite (90%)"
+
+msgid "Medium Quality (85%)"
+msgstr "Orta Kalite (85%)"
+
+msgid "JPEG compression quality for uploaded images"
+msgstr "Yüklenen resimler için JPEG sıkıştırma kalitesi"
+
+msgid "Image Optimization"
+msgstr "Resim Optimizasyonu"
+
+msgid "Optimize images during upload (reduces file size)"
+msgstr "Yükleme sırasında resimleri optimize et (dosya boyutunu azaltır)"
+
+msgid "Security check failed"
+msgstr "Güvenlik kontrolü başarısız"
+
+msgid "You do not have sufficient permissions"
+msgstr "Yeterli izniniz yok"
+
+msgid "You do not have permission to upload files"
+msgstr "Dosya yükleme izniniz yok"
+
+msgid "You do not have permission to perform this action."
+msgstr "Bu işlemi gerçekleştirme yetkiniz yok."
+
+msgid "%d orphaned media files were cleaned up."
+msgstr "%d sahipsiz medya dosyası temizlendi."
+
+msgid "Chapter number and manga series are required."
+msgstr "Bölüm numarası ve manga serisi gereklidir."
+
+msgid "Chapter %s already exists for this manga series."
+msgstr "Bu manga serisi için %s bölümü zaten mevcut."
+
+msgid "File %s is too large. Maximum size: %s"
+msgstr "%s dosyası çok büyük. Maksimum boyut: %s"
+
+msgid "File type %s is not allowed."
+msgstr "%s dosya türüne izin verilmiyor."
+
+msgid "Error creating attachment:"
+msgstr "Ek oluşturulurken hata:"
+
+msgid "Error uploading image:"
+msgstr "Resim yüklenirken hata:"
+
+msgid "Unknown error"
+msgstr "Bilinmeyen hata"
+
+msgid "File upload error (PHP Code: %s)"
+msgstr "Dosya yükleme hatası (PHP Kodu: %s)"
+
+msgid "%s Chapter %s"
+msgstr "%s Bölüm %s"
+
+msgid "Error creating chapter post:"
+msgstr "Bölüm gönderisi oluşturulurken hata:"
+
+msgid "Chapter uploaded successfully!"
+msgstr "Bölüm başarıyla yüklendi!"
+
+msgid "Manga series is required."
+msgstr "Manga serisi gereklidir."
+
+msgid "ZIP extension is not enabled on the server. Please contact your hosting provider."
+msgstr "ZIP uzantısı sunucuda etkin değil. Lütfen hosting sağlayıcınızla iletişime geçin."
+
+msgid "ZIP file upload error (PHP Code: %s)"
+msgstr "ZIP dosyası yükleme hatası (PHP Kodu: %s)"
+
+msgid "ZIP file is too large. Maximum size: %s"
+msgstr "ZIP dosyası çok büyük. Maksimum boyut: %s"
+
+msgid "Could not move ZIP file to temporary directory. Check file permissions."
+msgstr "ZIP dosyası geçici dizine taşınamadı. Dosya izinlerini kontrol edin."
+
+msgid "Could not open ZIP file. Error code:"
+msgstr "ZIP dosyası açılamadı. Hata kodu:"
+
+msgid "(Not a valid ZIP archive)"
+msgstr "(Geçerli bir ZIP arşivi değil)"
+
+msgid "Could not create temporary extraction directory."
+msgstr "Geçici çıkarma dizini oluşturulamadı."
+
+msgid "Could not extract ZIP contents."
+msgstr "ZIP içeriği çıkarılamadı."
+
+msgid "Invalid chapter folder name: %s. Must start with a number."
+msgstr "Geçersiz bölüm klasör adı: %s. Sayı ile başlamalıdır."
+
+msgid "Chapter %s already exists, skipping."
+msgstr "%s bölümü zaten mevcut, atlanıyor."
+
+msgid "Image %s is too large, skipping chapter."
+msgstr "%s resmi çok büyük, bölüm atlanıyor."
+
+msgid "Could not add image to media library: %s - %s"
+msgstr "Resim medya kütüphanesine eklenemedi: %s - %s"
+
+msgid "Error creating image attachment: %s - %s"
+msgstr "Resim eki oluşturulurken hata: %s - %s"
+
+msgid "No images found in folder: %s"
+msgstr "Klasörde resim bulunamadı: %s"
+
+msgid "Error creating chapter post: %s"
+msgstr "Bölüm gönderisi oluşturulurken hata: %s"
+
+msgid "Chapter %s (%s) uploaded successfully."
+msgstr "%s (%s) bölümü başarıyla yüklendi."
+
+msgid "Processing completed. %d chapters uploaded."
+msgstr "İşlem tamamlandı. %d bölüm yüklendi."
+
+msgid "Blogger URL and manga series are required."
+msgstr "Blogger URL'si ve manga serisi gereklidir."
+
+msgid "Invalid URL format."
+msgstr "Geçersiz URL formatı."
+
+msgid "Could not access Blogger URL: %s"
+msgstr "Blogger URL'sine erişilemedi: %s"
+
+msgid "HTTP Error: %s"
+msgstr "HTTP Hatası: %s"
+
+msgid "Empty response from Blogger URL."
+msgstr "Blogger URL'sinden boş yanıt."
+
+msgid "No images found on the page. The page might use JavaScript loading or have a different structure."
+msgstr "Sayfada resim bulunamadı. Sayfa JavaScript yüklemesi kullanıyor olabilir veya farklı bir yapıya sahip olabilir."
+
+msgid "Could not download image: %s - %s"
+msgstr "Resim indirilemedi: %s - %s"
+
+msgid "Image too large, skipping: %s"
+msgstr "Resim çok büyük, atlanıyor: %s"
+
+msgid "No images could be downloaded successfully. Found %d images but all failed."
+msgstr "Hiçbir resim başarıyla indirilemedi. %d resim bulundu ama hepsi başarısız."
+
+msgid "Error creating chapter post:"
+msgstr "Bölüm gönderisi oluşturulurken hata:"
+
+msgid "Chapter fetched successfully with %d images! (Failed: %d)"
+msgstr "Bölüm %d resimle başarıyla çekildi! (Başarısız: %d)"

@@ -1,0 +1,568 @@
+# Manga Chapter Uploader Language Template
+# Copyright (C) 2024 Solderet x Gemini
+# This file is distributed under the GPL2 license.
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Manga Chapter Uploader 1.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/yourusername/manga-chapter-uploader\n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"X-Poedit-KeywordsList: __;_e;_x;_ex;_n;_nx;esc_attr__;esc_attr_e;esc_attr_x;esc_html__;esc_html_e;esc_html_x\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: manga-chapter-uploader.php:51
+msgid "Meta Box plugin is not installed. %s will use standard WordPress meta fields instead."
+msgstr ""
+
+#: manga-chapter-uploader.php:57
+msgid "The \"manga\" post type is not registered. Please ensure your theme supports manga functionality."
+msgstr ""
+
+#: manga-chapter-uploader.php:63
+#: manga-chapter-uploader.php:159
+msgid "Manga Chapter Uploader"
+msgstr ""
+
+#: manga-chapter-uploader.php:64
+#: manga-chapter-uploader.php:171
+msgid "Chapter Uploader"
+msgstr ""
+
+#: manga-chapter-uploader.php:74
+#: manga-chapter-uploader.php:82
+msgid "Statistics"
+msgstr ""
+
+#: manga-chapter-uploader.php:82
+#: manga-chapter-uploader.php:90
+msgid "Settings"
+msgstr ""
+
+#: manga-chapter-uploader.php:113
+msgid "Uploading..."
+msgstr ""
+
+#: manga-chapter-uploader.php:114
+msgid "Processing..."
+msgstr ""
+
+#: manga-chapter-uploader.php:115
+msgid "Complete!"
+msgstr ""
+
+#: manga-chapter-uploader.php:116
+msgid "Error occurred"
+msgstr ""
+
+#: manga-chapter-uploader.php:117
+msgid "Are you sure you want to cleanup orphaned media? This action cannot be undone."
+msgstr ""
+
+#: manga-chapter-uploader.php:161
+msgid "Author: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:162
+msgid "MangaReader theme compatible single and multiple manga chapter upload plugin with advanced features."
+msgstr ""
+
+#: manga-chapter-uploader.php:166
+msgid "Recent Uploads"
+msgstr ""
+
+#: manga-chapter-uploader.php:173
+msgid "ago"
+msgstr ""
+
+#: manga-chapter-uploader.php:181
+msgid "Single Chapter Upload"
+msgstr ""
+
+#: manga-chapter-uploader.php:182
+msgid "Multiple Chapters (ZIP)"
+msgstr ""
+
+#: manga-chapter-uploader.php:183
+msgid "Fetch from Blogger"
+msgstr ""
+
+#: manga-chapter-uploader.php:186
+msgid "Single Chapter Upload"
+msgstr ""
+
+#: manga-chapter-uploader.php:191
+msgid "Chapter Number"
+msgstr ""
+
+#: manga-chapter-uploader.php:194
+msgid "Use decimal numbers for special chapters (e.g., 12.5)"
+msgstr ""
+
+#: manga-chapter-uploader.php:198
+msgid "Chapter Title"
+msgstr ""
+
+#: manga-chapter-uploader.php:200
+msgid "Optional chapter title"
+msgstr ""
+
+#: manga-chapter-uploader.php:204
+msgid "Manga Series"
+msgstr ""
+
+#: manga-chapter-uploader.php:207
+msgid "-- Select Manga --"
+msgstr ""
+
+#: manga-chapter-uploader.php:215
+msgid "Current chapters:"
+msgstr ""
+
+#: manga-chapter-uploader.php:221
+msgid "Chapter Category"
+msgstr ""
+
+#: manga-chapter-uploader.php:224
+msgid "-- Select Category (Optional) --"
+msgstr ""
+
+#: manga-chapter-uploader.php:234
+msgid "Chapter Images"
+msgstr ""
+
+#: manga-chapter-uploader.php:237
+msgid "Drag images here or click to select"
+msgstr ""
+
+#: manga-chapter-uploader.php:238
+msgid "Max file size: %s | Allowed types: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:243
+msgid "Preview:"
+msgstr ""
+
+#: manga-chapter-uploader.php:249
+msgid "Download Link"
+msgstr ""
+
+#: manga-chapter-uploader.php:251
+msgid "https://example.com/chapter-download"
+msgstr ""
+
+#: manga-chapter-uploader.php:252
+msgid "Optional external download link for this chapter"
+msgstr ""
+
+#: manga-chapter-uploader.php:256
+#: manga-chapter-uploader.php:331
+#: manga-chapter-uploader.php:377
+msgid "Photon CDN Status"
+msgstr ""
+
+#: manga-chapter-uploader.php:259
+#: manga-chapter-uploader.php:334
+#: manga-chapter-uploader.php:380
+msgid "Default"
+msgstr ""
+
+#: manga-chapter-uploader.php:260
+#: manga-chapter-uploader.php:335
+#: manga-chapter-uploader.php:381
+msgid "Enable"
+msgstr ""
+
+#: manga-chapter-uploader.php:261
+#: manga-chapter-uploader.php:336
+#: manga-chapter-uploader.php:382
+msgid "Disable"
+msgstr ""
+
+#: manga-chapter-uploader.php:263
+msgid "Control Photon CDN usage for chapter images"
+msgstr ""
+
+#: manga-chapter-uploader.php:268
+msgid "Upload Chapter"
+msgstr ""
+
+#: manga-chapter-uploader.php:275
+msgid "Multiple Chapters Upload (ZIP)"
+msgstr ""
+
+#: manga-chapter-uploader.php:277
+msgid "ZIP Structure Requirements:"
+msgstr ""
+
+#: manga-chapter-uploader.php:279
+msgid "Each folder name should start with chapter number (e.g., \"1\", \"2.5\", \"10-Title\")"
+msgstr ""
+
+#: manga-chapter-uploader.php:280
+msgid "Images should be in JPG, PNG, GIF, or WebP format"
+msgstr ""
+
+#: manga-chapter-uploader.php:281
+msgid "Images will be sorted alphabetically within each chapter"
+msgstr ""
+
+#: manga-chapter-uploader.php:287
+msgid "ZIP File"
+msgstr ""
+
+#: manga-chapter-uploader.php:289
+msgid "Maximum ZIP size: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:304
+msgid "Chapter Category (Optional)"
+msgstr ""
+
+#: manga-chapter-uploader.php:307
+msgid "-- Select Category --"
+msgstr ""
+
+#: manga-chapter-uploader.php:340
+msgid "Upload ZIP and Process"
+msgstr ""
+
+#: manga-chapter-uploader.php:346
+msgid "Fetch Chapter from Blogger"
+msgstr ""
+
+#: manga-chapter-uploader.php:348
+msgid "Supported Sites:"
+msgstr ""
+
+#: manga-chapter-uploader.php:350
+msgid "Blogger.com websites"
+msgstr ""
+
+#: manga-chapter-uploader.php:351
+msgid "Sites with standard image layouts"
+msgstr ""
+
+#: manga-chapter-uploader.php:352
+msgid "Lazy-loading and modern image formats supported"
+msgstr ""
+
+#: manga-chapter-uploader.php:358
+msgid "Blogger URL"
+msgstr ""
+
+#: manga-chapter-uploader.php:360
+msgid "https://example.blogspot.com/chapter-1"
+msgstr ""
+
+#: manga-chapter-uploader.php:361
+msgid "Test URL"
+msgstr ""
+
+#: manga-chapter-uploader.php:374
+msgid "Chapter Number (Auto-detect)"
+msgstr ""
+
+#: manga-chapter-uploader.php:376
+msgid "Will be auto-detected from URL"
+msgstr ""
+
+#: manga-chapter-uploader.php:377
+msgid "Leave empty for auto-detection or enter manually"
+msgstr ""
+
+#: manga-chapter-uploader.php:386
+msgid "Fetch from Blogger"
+msgstr ""
+
+#: manga-chapter-uploader.php:393
+msgid "Upload Status:"
+msgstr ""
+
+#: manga-chapter-uploader.php:404
+msgid "Debug Information:"
+msgstr ""
+
+#: manga-chapter-uploader.php:413
+msgid "Upload Statistics"
+msgstr ""
+
+#: manga-chapter-uploader.php:417
+msgid "Total Chapters"
+msgstr ""
+
+#: manga-chapter-uploader.php:422
+msgid "Total Images"
+msgstr ""
+
+#: manga-chapter-uploader.php:427
+msgid "Total Size"
+msgstr ""
+
+#: manga-chapter-uploader.php:432
+msgid "This Month"
+msgstr ""
+
+#: manga-chapter-uploader.php:438
+msgid "Cleanup Orphaned Media"
+msgstr ""
+
+#: manga-chapter-uploader.php:439
+msgid "Refresh Statistics"
+msgstr ""
+
+#: manga-chapter-uploader.php:447
+msgid "Settings saved successfully!"
+msgstr ""
+
+#: manga-chapter-uploader.php:454
+msgid "Maximum Upload Size"
+msgstr ""
+
+#: manga-chapter-uploader.php:457
+msgid "Maximum file size for individual images"
+msgstr ""
+
+#: manga-chapter-uploader.php:462
+msgid "Auto Cleanup"
+msgstr ""
+
+#: manga-chapter-uploader.php:466
+msgid "Automatically cleanup orphaned media files daily"
+msgstr ""
+
+#: manga-chapter-uploader.php:471
+msgid "Statistics Tracking"
+msgstr ""
+
+#: manga-chapter-uploader.php:475
+msgid "Enable upload statistics tracking"
+msgstr ""
+
+#: manga-chapter-uploader.php:537
+msgid "You do not have permission to perform this action."
+msgstr ""
+
+#: manga-chapter-uploader.php:543
+msgid "%d orphaned media files were cleaned up."
+msgstr ""
+
+#: manga-chapter-uploader.php:584
+msgid "Chapter number and manga series are required."
+msgstr ""
+
+#: manga-chapter-uploader.php:602
+msgid "Chapter %s already exists for this manga series."
+msgstr ""
+
+#: manga-chapter-uploader.php:619
+msgid "File %s is too large. Maximum size: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:627
+msgid "File type %s is not allowed."
+msgstr ""
+
+#: manga-chapter-uploader.php:645
+msgid "Error creating attachment:"
+msgstr ""
+
+#: manga-chapter-uploader.php:651
+msgid "Error uploading image:"
+msgstr ""
+
+#: manga-chapter-uploader.php:651
+msgid "Unknown error"
+msgstr ""
+
+#: manga-chapter-uploader.php:655
+msgid "File upload error (PHP Code: %s)"
+msgstr ""
+
+#: manga-chapter-uploader.php:662
+msgid "%s Chapter %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:682
+msgid "Error creating chapter post:"
+msgstr ""
+
+#: manga-chapter-uploader.php:704
+msgid "Chapter uploaded successfully!"
+msgstr ""
+
+#: manga-chapter-uploader.php:719
+msgid "Manga series is required."
+msgstr ""
+
+#: manga-chapter-uploader.php:724
+msgid "ZIP extension is not enabled on the server. Please contact your hosting provider."
+msgstr ""
+
+#: manga-chapter-uploader.php:729
+msgid "ZIP file upload error (PHP Code: %s)"
+msgstr ""
+
+#: manga-chapter-uploader.php:735
+msgid "ZIP file is too large. Maximum size: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:742
+msgid "Could not move ZIP file to temporary directory. Check file permissions."
+msgstr ""
+
+#: manga-chapter-uploader.php:750
+msgid "Could not open ZIP file. Error code:"
+msgstr ""
+
+#: manga-chapter-uploader.php:752
+msgid "(Not a valid ZIP archive)"
+msgstr ""
+
+#: manga-chapter-uploader.php:759
+msgid "Could not create temporary extraction directory."
+msgstr ""
+
+#: manga-chapter-uploader.php:765
+msgid "Could not extract ZIP contents."
+msgstr ""
+
+#: manga-chapter-uploader.php:786
+msgid "Invalid chapter folder name: %s. Must start with a number."
+msgstr ""
+
+#: manga-chapter-uploader.php:797
+msgid "Chapter %s already exists, skipping."
+msgstr ""
+
+#: manga-chapter-uploader.php:809
+msgid "Image %s is too large, skipping chapter."
+msgstr ""
+
+#: manga-chapter-uploader.php:825
+msgid "Could not add image to media library: %s - %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:838
+msgid "Error creating image attachment: %s - %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:844
+msgid "No images found in folder: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:867
+msgid "Error creating chapter post: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:883
+msgid "Chapter %s (%s) uploaded successfully."
+msgstr ""
+
+#: manga-chapter-uploader.php:898
+msgid "Processing completed. %d chapters uploaded."
+msgstr ""
+
+#: manga-chapter-uploader.php:907
+msgid "Blogger URL and manga series are required."
+msgstr ""
+
+#: manga-chapter-uploader.php:912
+msgid "Invalid URL format."
+msgstr ""
+
+#: manga-chapter-uploader.php:930
+msgid "Could not access Blogger URL: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:936
+msgid "HTTP Error: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:942
+msgid "Empty response from Blogger URL."
+msgstr ""
+
+#: manga-chapter-uploader.php:950
+msgid "No images found on the page. The page might use JavaScript loading or have a different structure."
+msgstr ""
+
+#: manga-chapter-uploader.php:964
+msgid "Chapter %s already exists for this manga series."
+msgstr ""
+
+#: manga-chapter-uploader.php:1008
+msgid "Could not download image: %s - %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:1016
+msgid "Image too large, skipping: %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:1031
+msgid "Could not add image to media library: %s - %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:1048
+msgid "Error creating image attachment: %s - %s"
+msgstr ""
+
+#: manga-chapter-uploader.php:1054
+msgid "No images could be downloaded successfully. Found %d images but all failed."
+msgstr ""
+
+#: manga-chapter-uploader.php:1071
+msgid "Error creating chapter post:"
+msgstr ""
+
+#: manga-chapter-uploader.php:1089
+msgid "Chapter fetched successfully with %d images! (Failed: %d)"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Select the plugin interface language"
+msgstr ""
+
+msgid "Image Quality"
+msgstr ""
+
+msgid "Original (100%)"
+msgstr ""
+
+msgid "High Quality (95%)"
+msgstr ""
+
+msgid "Good Quality (90%)"
+msgstr ""
+
+msgid "Medium Quality (85%)"
+msgstr ""
+
+msgid "JPEG compression quality for uploaded images"
+msgstr ""
+
+msgid "Image Optimization"
+msgstr ""
+
+msgid "Optimize images during upload (reduces file size)"
+msgstr ""
+
+msgid "Security check failed"
+msgstr ""
+
+msgid "You do not have sufficient permissions"
+msgstr ""
+
+msgid "You do not have permission to upload files"
+msgstr ""
