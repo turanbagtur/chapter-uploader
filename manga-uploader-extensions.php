@@ -23,8 +23,8 @@ class MCU_ZipProcessor {
             return array('success' => false, 'message' => sprintf('ZIP file upload error (PHP Code: %s)', $zip_file['error']));
         }
 
-        // Dosya boyutu kontrolü (100MB limit)
-        $max_zip_size = 100 * 1024 * 1024; // 100MB
+        // GÜNCELLENMİŞ: Ayarlardan ZIP boyut limitini al
+        $max_zip_size = get_option('mcu_max_zip_size', 524288000); // 500MB varsayılan
         if ($zip_file['size'] > $max_zip_size) {
             return array('success' => false, 'message' => sprintf('ZIP file is too large. Maximum size: %s', size_format($max_zip_size)));
         }
@@ -242,7 +242,7 @@ class MCU_ZipProcessor {
         return array_values($images);
     }
     
-private function create_chapter_from_images($manga_id, $chapter_number, $folder_name, $images, $chapter_category, $chapter_prefix = 'chapter') {
+    private function create_chapter_from_images($manga_id, $chapter_number, $folder_name, $images, $chapter_category, $chapter_prefix = 'chapter') {
         $uploaded_images = array();
         $upload_overrides = array('test_form' => false);
 
@@ -298,7 +298,7 @@ private function create_chapter_from_images($manga_id, $chapter_number, $folder_
             }
         }
 
-        // Başlık oluşturma - DÜZELTİLMİŞ: Gelen chapter_prefix'i kullan
+        // Başlık oluşturma - Gelen chapter_prefix'i kullan
         $manga_title = get_the_title($manga_id);
         $prefix_map = array(
             'chapter' => 'Chapter',
@@ -511,7 +511,7 @@ class MCU_AdvancedFetcher {
         }
     }
     
-    private function fetch_from_mangadex($url, $manga_id, $chapter_number) {
+    private function fetch_from_mangadx($url, $manga_id, $chapter_number) {
         // MangaDx basit çekme (API olmadan)
         $response = wp_remote_get($url, array(
             'timeout' => 30,
@@ -701,7 +701,7 @@ class MCU_ScheduledPublisher {
             'post_status' => 'draft'
         ));
         
-        // Zamanlaï event oluştur
+        // Zamanlaı event oluştur
         wp_schedule_single_event($timestamp, 'mcu_publish_scheduled_chapter', array($post_id));
         
         // Scheduled meta ekle

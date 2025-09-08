@@ -3,7 +3,7 @@
  * Plugin Name: Manga Chapter Uploader
  * Plugin URI: https://mangaruhu.com
  * Description: MangaReader theme compatible single and multiple manga chapter upload plugin with internationalization support.
- * Version: 1.3.2
+ * Version: 1.3.3
  * Author: Solderet
  * Author URI: https://mangaruhu.com
  * License: GPL2
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin sabitlerini tanımla
-define('MCU_VERSION', '1.3.2');
+define('MCU_VERSION', '1.3.3');
 define('MCU_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MCU_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('MCU_TEXT_DOMAIN', 'manga-chapter-uploader');
@@ -29,6 +29,7 @@ class MangaChapterUploader {
     
     private $allowed_image_types = array('jpg', 'jpeg', 'png', 'gif', 'webp');
     private $max_file_size = 10485760; // 10MB
+    private $max_zip_size = 524288000; // 500MB (varsayılan)
     
     public function __construct() {
         add_action('init', array($this, 'init'));
@@ -54,6 +55,7 @@ class MangaChapterUploader {
 
     public function activate() {
         add_option('mcu_max_upload_size', $this->max_file_size);
+        add_option('mcu_max_zip_size', $this->max_zip_size); // YENİ EKLENEN
         add_option('mcu_allowed_image_types', $this->allowed_image_types);
         add_option('mcu_stats_enabled', true);
         add_option('mcu_auto_cleanup', true);
@@ -132,6 +134,7 @@ class MangaChapterUploader {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('manga_uploader_nonce'),
             'max_file_size' => $this->max_file_size,
+            'max_zip_size' => get_option('mcu_max_zip_size', $this->max_zip_size), // YENİ EKLENEN
             'allowed_types' => $this->allowed_image_types,
             'text' => array(
                 'uploading' => __('Uploading...', MCU_TEXT_DOMAIN),
@@ -142,6 +145,7 @@ class MangaChapterUploader {
                 'enter_chapter_number' => __('Please enter a chapter number', MCU_TEXT_DOMAIN),
                 'file_too_large' => __('File too large', MCU_TEXT_DOMAIN),
                 'invalid_file_type' => __('Invalid file type', MCU_TEXT_DOMAIN),
+                'zip_too_large' => __('ZIP file too large', MCU_TEXT_DOMAIN), // YENİ EKLENEN
                 'confirm_cleanup' => __('Are you sure you want to cleanup orphaned media?', MCU_TEXT_DOMAIN)
             )
         ));
@@ -189,6 +193,8 @@ class MangaChapterUploader {
             'taxonomy'   => 'category',
             'hide_empty' => false,
         ));
+
+        $max_zip_size = get_option('mcu_max_zip_size', $this->max_zip_size);
         ?>
         <div class="wrap manga-uploader-wrapper">
             <div class="manga-uploader-header">
@@ -311,8 +317,17 @@ class MangaChapterUploader {
                     </form>
                 </div>
 
-<div id="multiple-chapter-form" class="upload-form" style="display: none;">
+                <div id="multiple-chapter-form" class="upload-form" style="display: none;">
                     <h2><?php _e('Multiple Chapters Upload (ZIP)', MCU_TEXT_DOMAIN); ?></h2>
+                    <div class="zip-requirements" style="background: #f0f8ff; border-left: 4px solid #0073aa; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="margin-top: 0;"><?php _e('ZIP Structure Requirements:', MCU_TEXT_DOMAIN); ?></h4>
+                        <ul style="margin-bottom: 0;">
+                            <li><?php _e('Each folder name should start with chapter number (e.g., "1", "2.5", "10-Title")', MCU_TEXT_DOMAIN); ?></li>
+                            <li><?php _e('Images should be in JPG, PNG, GIF, or WebP format', MCU_TEXT_DOMAIN); ?></li>
+                            <li><?php _e('Images will be sorted alphabetically within each chapter', MCU_TEXT_DOMAIN); ?></li>
+                            <li><?php echo sprintf(__('Maximum ZIP size: %s', MCU_TEXT_DOMAIN), '<strong>' . size_format($max_zip_size) . '</strong>'); ?></li>
+                        </ul>
+                    </div>
                     <form id="multiple-upload-form" method="post" enctype="multipart/form-data">
                         <table class="form-table">
                             <tbody>
@@ -320,6 +335,7 @@ class MangaChapterUploader {
                                     <th scope="row"><label for="multiple-zip-file"><?php _e('ZIP File', MCU_TEXT_DOMAIN); ?></label></th>
                                     <td>
                                         <input type="file" id="multiple-zip-file" name="zip_file" accept=".zip" required class="regular-text">
+                                        <p class="description"><?php echo sprintf(__('Maximum ZIP size: %s', MCU_TEXT_DOMAIN), size_format($max_zip_size)); ?></p>
                                     </td>
                                 </tr>
                                 <tr>
@@ -336,7 +352,6 @@ class MangaChapterUploader {
                                         </select>
                                     </td>
                                 </tr>
-                                <!-- EKSİK OLAN CHAPTER PREFIX ALANI -->
                                 <tr>
                                     <th scope="row"><label for="multiple-chapter-prefix"><?php _e('Chapter Prefix', MCU_TEXT_DOMAIN); ?></label></th>
                                     <td>
@@ -447,7 +462,7 @@ class MangaChapterUploader {
                     </form>
                 </div>
 
-                <div id="upload-progress" style="display: none;">
+                        <div id="upload-progress" style="display: none;">
                     <h3><?php _e('Upload Status:', MCU_TEXT_DOMAIN); ?></h3>
                     <div class="progress-bar">
                         <div class="progress-fill"></div>
@@ -882,7 +897,7 @@ class MangaChapterUploader {
         ));
     }
 
-public function handle_multiple_chapters_upload() {
+    public function handle_multiple_chapters_upload() {
         if (!check_ajax_referer('manga_uploader_nonce', 'nonce', false)) {
             wp_send_json_error(array('message' => __('Security check failed', MCU_TEXT_DOMAIN)));
         }
@@ -893,7 +908,6 @@ public function handle_multiple_chapters_upload() {
         
         $zip_file = $_FILES['zip_file'];
         $manga_id = intval($_POST['manga_series']);
-        // DÜZELTİLMİŞ: chapter_prefix'i POST'tan al, yoksa varsayılan değer kullan
         $chapter_prefix = isset($_POST['chapter_prefix']) ? sanitize_text_field($_POST['chapter_prefix']) : get_option('mcu_chapter_prefix', 'chapter');
         $chapter_category = isset($_POST['chapter_category']) ? intval($_POST['chapter_category']) : 0;
         $push_to_latest = isset($_POST['push_to_latest']) && $_POST['push_to_latest'] === '1';
@@ -1133,6 +1147,27 @@ public function handle_multiple_chapters_upload() {
                             </select>
                         </td>
                     </tr>
+                    
+                    <!-- YENİ EKLENEN: ZIP Boyut Limiti -->
+                    <tr>
+                        <th scope="row"><?php _e('Maximum ZIP File Size', MCU_TEXT_DOMAIN); ?></th>
+                        <td>
+                            <select name="max_zip_size" class="regular-text">
+                                <option value="104857600" <?php selected($settings['max_zip_size'], 104857600); ?>><?php _e('100 MB', MCU_TEXT_DOMAIN); ?></option>
+                                <option value="209715200" <?php selected($settings['max_zip_size'], 209715200); ?>><?php _e('200 MB', MCU_TEXT_DOMAIN); ?></option>
+                                <option value="524288000" <?php selected($settings['max_zip_size'], 524288000); ?>><?php _e('500 MB', MCU_TEXT_DOMAIN); ?></option>
+                                <option value="1073741824" <?php selected($settings['max_zip_size'], 1073741824); ?>><?php _e('1 GB', MCU_TEXT_DOMAIN); ?></option>
+                                <option value="2147483648" <?php selected($settings['max_zip_size'], 2147483648); ?>><?php _e('2 GB', MCU_TEXT_DOMAIN); ?></option>
+                                <option value="5368709120" <?php selected($settings['max_zip_size'], 5368709120); ?>><?php _e('5 GB', MCU_TEXT_DOMAIN); ?></option>
+                            </select>
+                            <p class="description"><?php _e('Maximum allowed size for ZIP files in multiple chapter upload', MCU_TEXT_DOMAIN); ?></p>
+                            <p class="description" style="color: #d63638;">
+                                <strong><?php _e('Warning:', MCU_TEXT_DOMAIN); ?></strong> 
+                                <?php _e('Large ZIP files may cause server timeout. Ensure your server has adequate PHP memory_limit, max_execution_time, and post_max_size settings.', MCU_TEXT_DOMAIN); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
                     <tr>
                         <th scope="row"><?php _e('Auto Push to Homepage', MCU_TEXT_DOMAIN); ?></th>
                         <td>
@@ -1176,7 +1211,8 @@ public function handle_multiple_chapters_upload() {
             'chapter_prefix' => get_option('mcu_chapter_prefix', 'chapter'),
             'auto_push_latest' => get_option('mcu_auto_push_latest', true),
             'image_quality' => get_option('mcu_image_quality', 95),
-            'optimize_images' => get_option('mcu_optimize_images', true)
+            'optimize_images' => get_option('mcu_optimize_images', true),
+            'max_zip_size' => get_option('mcu_max_zip_size', $this->max_zip_size) // YENİ EKLENEN
         );
     }
 
@@ -1193,6 +1229,12 @@ public function handle_multiple_chapters_upload() {
         update_option('mcu_auto_push_latest', isset($_POST['auto_push_latest']));
         update_option('mcu_image_quality', intval($_POST['image_quality']));
         update_option('mcu_optimize_images', isset($_POST['optimize_images']));
+        
+        // YENİ EKLENEN: ZIP boyut limiti kaydetme
+        $max_zip_size = intval($_POST['max_zip_size']);
+        if ($max_zip_size > 0) {
+            update_option('mcu_max_zip_size', $max_zip_size);
+        }
     }
 
     // Scheduled publisher hook handler

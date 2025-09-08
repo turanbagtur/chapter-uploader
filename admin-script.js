@@ -62,6 +62,35 @@ jQuery(document).ready(function($) {
         }
     });
 
+    // YENİ EKLENEN: ZIP dosya boyutu kontrolü
+    $('#multiple-zip-file').on('change', function() {
+        var files = this.files;
+        var zipSizeInfo = $('#zip-size-info');
+        
+        // Mevcut bilgi div'ini kaldır
+        zipSizeInfo.remove();
+        
+        if (files.length > 0) {
+            var file = files[0];
+            var maxZipSize = mangaUploaderAjax.max_zip_size || 524288000; // 500MB varsayılan
+            var fileSize = file.size;
+            
+            // Dosya boyutu bilgisini göster
+            var sizeInfo = '<div id="zip-size-info" style="margin-top: 10px;">';
+            sizeInfo += '<p><strong>Seçilen ZIP:</strong> ' + file.name + '</p>';
+            sizeInfo += '<p><strong>Dosya Boyutu:</strong> ' + formatBytes(fileSize) + '</p>';
+            
+            if (fileSize > maxZipSize) {
+                sizeInfo += '<p style="color: #d63638;"><strong>⚠ Uyarı:</strong> Dosya çok büyük! Maksimum boyut: ' + formatBytes(maxZipSize) + '</p>';
+            } else {
+                sizeInfo += '<p style="color: #46b450;"><strong>✓ OK:</strong> Dosya boyutu uygun</p>';
+            }
+            
+            sizeInfo += '</div>';
+            $(this).parent().append(sizeInfo);
+        }
+    });
+
     // Programlanmış yayınlama toggle
     $('#schedule-publish').change(function() {
         if ($(this).is(':checked')) {
@@ -259,7 +288,7 @@ jQuery(document).ready(function($) {
         return true;
     }
 
-    // Çoklu bölüm form validasyonu - YENİ EKLENEN
+    // Çoklu bölüm form validasyonu - GÜNCELLENMİŞ
     function validateMultipleForm() {
         var mangaSeries = $('#multiple-manga-series').val();
         var zipFile = $('#multiple-zip-file')[0].files[0];
@@ -271,6 +300,13 @@ jQuery(document).ready(function($) {
         
         if (!zipFile) {
             alert('Lütfen bir ZIP dosyası seçin');
+            return false;
+        }
+        
+        // YENİ EKLENEN: ZIP dosya boyutu kontrolü
+        var maxZipSize = mangaUploaderAjax.max_zip_size || 524288000; // 500MB varsayılan
+        if (zipFile.size > maxZipSize) {
+            alert(mangaUploaderAjax.text.zip_too_large + ': ' + formatBytes(zipFile.size) + ' (Maksimum: ' + formatBytes(maxZipSize) + ')');
             return false;
         }
         
@@ -370,7 +406,7 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Çoklu bölüm yükleme AJAX - DÜZELTİLMİŞ
+    // Çoklu bölüm yükleme AJAX - GÜNCELLENMİŞ
     $('#multiple-upload-form').submit(function(e) {
         e.preventDefault();
         
@@ -393,7 +429,7 @@ jQuery(document).ready(function($) {
             data: formData,
             contentType: false,
             processData: false,
-            timeout: 600000, // 10 dakika timeout
+            timeout: 900000, // 15 dakika timeout (büyük ZIP dosyaları için)
             xhr: function() {
                 var xhr = new window.XMLHttpRequest();
                 xhr.upload.addEventListener('progress', function(evt) {
@@ -420,15 +456,18 @@ jQuery(document).ready(function($) {
                     }
                     $('#upload-results').html(resultsHtml);
                    
-                    // Formu sıfırla ama önemli alanları koru - DÜZELTİLMİŞ
+                    // Formu sıfırla ama önemli alanları koru
                     var currentMangaSeries = $('#multiple-manga-series').val();
                     var currentChapterCategory = $('#multiple-chapter-category').val();
-                    var currentChapterPrefix = $('#multiple-chapter-prefix').val(); // EKLENEN
+                    var currentChapterPrefix = $('#multiple-chapter-prefix').val();
                     
                     $('#multiple-upload-form')[0].reset();
                     $('#multiple-manga-series').val(currentMangaSeries).trigger('change');
                     $('#multiple-chapter-category').val(currentChapterCategory);
-                    $('#multiple-chapter-prefix').val(currentChapterPrefix); // EKLENEN
+                    $('#multiple-chapter-prefix').val(currentChapterPrefix);
+                    
+                    // ZIP boyut bilgisini temizle
+                    $('#zip-size-info').remove();
 
                 } else {
                     $('#upload-results').html('<div class="upload-result upload-error"><strong>Hata:</strong> ' + (response.data.message || 'Bilinmeyen bir hata oluştu.') + '</div>');
@@ -442,7 +481,15 @@ jQuery(document).ready(function($) {
             },
             error: function(xhr, status, error) {
                 $('#upload-progress').hide();
-                $('#upload-results').html('<div class="upload-result upload-error"><strong>Yükleme sırasında bir hata oluştu:</strong> ' + error + '</div>');
+                
+                var errorMsg = 'Yükleme sırasında bir hata oluştu: ';
+                if (status === 'timeout') {
+                    errorMsg += 'İşlem zaman aşımına uğradı. Büyük ZIP dosyaları için sunucu ayarlarını kontrol edin.';
+                } else {
+                    errorMsg += error;
+                }
+                
+                $('#upload-results').html('<div class="upload-result upload-error"><strong>' + errorMsg + '</strong></div>');
                 console.error("AJAX error:", status, error, xhr.responseText);
                 $('.progress-fill').css('width', '0%');
                 $('#progress-text').text('0%');
