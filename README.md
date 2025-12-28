@@ -1,6 +1,6 @@
 # Manga Chapter Uploader
 
-[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](https://github.com/your-username/manga-chapter-uploader)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/turanbagtur/chapter-uploader)
 [![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)](https://wordpress.org)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-GPL2-green.svg)](LICENSE)
@@ -29,16 +29,20 @@ MangaReader temaları için özel olarak tasarlanmış, çoklu kaynaklardan mang
 - **Chapter Management**: Display current chapter count for each manga
 - **Category Auto-Selection**: Automatically assigns categories based on manga series
 - **Homepage Integration**: Push chapters to homepage latest updates
+- **Scheduled Publishing**: Set future publish dates for chapters
 
 #### 📦 Multiple Chapter Upload (ZIP)
+- **NEW in v1.4.0:** Enhanced sequential processing with guaranteed chapter ordering
+- **NEW in v1.4.0:** Configurable maximum ZIP file size (100MB - 5GB)
 - **Bulk Processing**: Upload multiple chapters via ZIP files
 - **Smart Folder Recognition**: Supports various naming conventions:
   - `1`, `2`, `3` (numbers only)
   - `1-Title`, `2-Second Chapter` (number-title format)
   - `chapter 1`, `bölüm 1` (with prefix)
 - **Natural Sorting**: Proper numerical ordering (1, 2, 10 instead of 1, 10, 2)
-- **Error Reporting**: Detailed feedback for each chapter processing
-- **Progress Tracking**: Real-time upload progress with visual indicators
+- **FIXED in v1.4.0:** Sequential chapter ordering - no more mixed order uploads (161,163,162 → 160,161,162,163...)
+- **Real-time Progress Tracking**: Visual indicators with detailed status updates
+- **Comprehensive Error Reporting**: Detailed feedback for each chapter processing
 
 #### 🌐 Website Fetching
 - **Multi-Site Support**: Fetch chapters from Blogger and other websites
@@ -48,17 +52,19 @@ MangaReader temaları için özel olarak tasarlanmış, çoklu kaynaklardan mang
 - **Lazy Loading Support**: Handles modern image loading techniques
 
 #### 🛡️ Advanced Features
-- **Scheduled Publishing**: Set future publish dates for chapters
+- **NEW in v1.4.0:** Advanced logging system for debugging
+- **NEW in v1.4.0:** Enhanced error handling and recovery mechanisms
 - **Image Optimization**: Automatic WebP conversion and progressive JPEG
 - **Watermark Protection**: Built-in image protection (optional)
-- **Error Recovery**: Comprehensive error handling and debugging
 - **Cache Management**: Automatic cache clearing for immediate updates
+- **FIXED in v1.4.0:** Scheduled post issues - all chapters now publish immediately
 
 #### 📊 Statistics & Management
 - **Upload Analytics**: Track total chapters, images, and storage usage
 - **Monthly Reports**: Detailed monthly upload statistics
 - **Orphaned Media Cleanup**: Automatic cleanup of unused media files
-- **Debug Information**: Comprehensive logging for troubleshooting
+- **NEW in v1.4.0:** Enhanced debugging with comprehensive logging
+- **NEW in v1.4.0:** Advanced error tracking and reporting
 
 ### 💻 Installation
 
@@ -88,6 +94,7 @@ The plugin uses these meta fields for MangaReader theme compatibility:
 ```
 
 #### Settings Options
+- **NEW in v1.4.0:** Configurable ZIP file size limits (100MB - 5GB)
 - **Chapter Prefix**: Default prefix for chapter titles (Chapter, Bölüm, etc.)
 - **Auto Homepage Push**: Automatically update manga on homepage
 - **Image Quality**: JPEG compression settings (85%-100%)
@@ -122,7 +129,8 @@ manga_chapters.zip
 2. Select **Multiple Chapters (ZIP)** tab
 3. Choose ZIP file and manga series
 4. Select chapter prefix
-5. Click **Upload ZIP and Process**
+5. **NEW in v1.4.0:** Watch real-time sequential processing with guaranteed order
+6. Click **Upload ZIP and Process**
 
 #### Website Fetching
 1. Select **Fetch from Website** tab
@@ -136,45 +144,60 @@ manga_chapters.zip
 #### Supported File Formats
 - **Images**: JPG, JPEG, PNG, GIF, WebP
 - **Archives**: ZIP (for multiple chapters)
-- **Maximum Sizes**: 10MB per image, 100MB per ZIP
+- **Maximum Sizes**: 10MB per image, **NEW:** Configurable ZIP size up to 5GB
 
 #### Homepage Update System
-When chapters are uploaded, the plugin updates the homepage by:
-- Modifying manga post `post_date` and `post_modified` timestamps
-- Updating `_last_updated` meta field
-- Clearing WordPress cache
-- Triggering theme-specific hooks
+**ENHANCED in v1.4.0:** When chapters are uploaded, the plugin updates the homepage by:
+- Modifying manga post `post_date` and `post_modified` timestamps with current time
+- Updating multiple meta fields for better theme compatibility
+- Comprehensive cache clearing (WordPress cache, transients, object cache)
+- Triggering all relevant theme hooks
+- **NEW:** Force homepage appearance system for stubborn themes
 
 #### Security Features
+- **ENHANCED in v1.4.0:** Improved file validation and security checks
 - CSRF protection with nonces
 - File type validation
 - Size limit enforcement
 - User permission checks
 - Secure file naming conventions
+- **NEW:** Safe recursive directory operations
 
 ### 🚨 Troubleshooting
 
 #### Common Issues
 
 **Chapters not appearing on homepage:**
+- **FIXED in v1.4.0:** Enhanced homepage push system with multiple fallback methods
 - Verify "Push to Homepage" is enabled
 - Clear cache plugins
 - Ensure theme has proper manga post type support
 
 **ZIP upload failures:**
+- **IMPROVED in v1.4.0:** Better error handling and reporting
 - Check ZipArchive PHP extension is installed
 - Increase PHP `memory_limit` and `max_execution_time`
 - Verify file permissions on uploads directory
 
-**Website fetching errors:**
-- Confirm URL accessibility
-- Check for bot protection or firewalls
-- Verify image protection isn't blocking downloads
+**Chapters uploading in wrong order:**
+- **FIXED in v1.4.0:** Sequential processing guarantees correct order
+- No more mixed ordering issues (like 161,163,162,167,164)
+- Sequential processing ensures: 160 → 161 → 162 → 163 → 164...
+
+**Scheduled posts instead of immediate publishing:**
+- **FIXED in v1.4.0:** All chapters now publish immediately
+- No more "scheduled" post status issues
 
 #### Debug Mode
-Failed uploads automatically display debug information. Share this data when requesting support.
+**ENHANCED in v1.4.0:** Failed uploads automatically display comprehensive debug information with detailed insights for troubleshooting.
 
 ### 📈 Performance Optimization
+
+#### **NEW in v1.4.0:** Performance Improvements
+- **Sequential Processing:** Eliminates race conditions and ensures perfect order
+- **Optimized File Operations:** Safe and efficient file handling
+- **Enhanced Caching:** Smart cache management for better performance
+- **Reduced Memory Usage:** Optimized for large ZIP files
 
 #### Recommendations
 - Increase PHP timeout values for large files
@@ -183,24 +206,9 @@ Failed uploads automatically display debug information. Share this data when req
 - Regular orphaned media cleanup
 - Enable image optimization features
 
-### 🔄 API Integration
-
-The plugin provides hooks for developers:
-
-```php
-// After chapter upload
-do_action('mcu_chapter_uploaded', $post_id, $manga_id, $chapter_number);
-
-// Before homepage update
-do_action('mcu_before_homepage_push', $manga_id, $post_id);
-
-// Image processing
-do_action('mcu_process_image', $image_path, $attachment_id);
-```
-
 ### 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/manga-chapter-uploader/issues)
+- **Issues**: [GitHub Issues](https://github.com/turanbagtur/chapter-uploader/issues)
 - **Website**: [mangaruhu.com](https://mangaruhu.com)
 
 ---
@@ -216,16 +224,20 @@ do_action('mcu_process_image', $image_path, $attachment_id);
 - **Bölüm Yönetimi**: Her manga için mevcut bölüm sayısını görüntüleme
 - **Otomatik Kategori Seçimi**: Manga serisine göre otomatik kategori atama
 - **Ana Sayfa Entegrasyonu**: Bölümleri ana sayfa güncel güncellemelerine itme
+- **Programlanmış Yayınlama**: Bölümler için gelecek yayın tarihleri belirleme
 
 #### 📦 Çoklu Bölüm Yükleme (ZIP)
+- **YENİ v1.4.0'da:** Garantili bölüm sıralaması ile geliştirilmiş sıralı işleme
+- **YENİ v1.4.0'da:** Yapılandırılabilir maksimum ZIP dosya boyutu (100MB - 5GB)
 - **Toplu İşleme**: ZIP dosyaları ile çoklu bölüm yükleme
 - **Akıllı Klasör Tanıma**: Çeşitli adlandırma kurallarını destekler:
   - `1`, `2`, `3` (sadece numara)
   - `1-Başlık`, `2-İkinci Bölüm` (numara-başlık formatı)
   - `chapter 1`, `bölüm 1` (ön ek ile)
 - **Doğal Sıralama**: Doğru sayısal sıralama (1, 2, 10 şeklinde, 1, 10, 2 değil)
-- **Hata Raporlama**: Her bölüm işlemi için detaylı geri bildirim
-- **İlerleme Takibi**: Görsel göstergelerle gerçek zamanlı yükleme ilerlemesi
+- **DÜZELTİLDİ v1.4.0'da:** Sıralı bölüm düzeni - artık karışık sıralama yok (161,163,162 → 160,161,162,163...)
+- **Gerçek Zamanlı İlerleme Takibi**: Detaylı durum güncellemeleri ile görsel göstergeler
+- **Kapsamlı Hata Raporlama**: Her bölüm işlemi için detaylı geri bildirim
 
 #### 🌐 Web Sitelerinden Çekme
 - **Çoklu Site Desteği**: Blogger ve diğer web sitelerinden bölüm çekme
@@ -235,17 +247,19 @@ do_action('mcu_process_image', $image_path, $attachment_id);
 - **Lazy Loading Desteği**: Modern resim yükleme tekniklerini işleme
 
 #### 🛡️ Gelişmiş Özellikler
-- **Programlanmış Yayınlama**: Bölümler için gelecek yayın tarihleri belirleme
+- **YENİ v1.4.0'da:** Debug için gelişmiş loglama sistemi
+- **YENİ v1.4.0'da:** Gelişmiş hata yönetimi ve kurtarma mekanizmaları
 - **Resim Optimizasyonu**: Otomatik WebP dönüştürme ve progressive JPEG
 - **Filigran Koruması**: Yerleşik resim koruması (opsiyonel)
-- **Hata Kurtarma**: Kapsamlı hata yönetimi ve hata ayıklama
 - **Önbellek Yönetimi**: Anında güncellemeler için otomatik önbellek temizleme
+- **DÜZELTİLDİ v1.4.0'da:** Zamanlanmış post sorunları - tüm bölümler artık anında yayınlanıyor
 
 #### 📊 İstatistikler ve Yönetim
 - **Yükleme Analitiği**: Toplam bölüm, resim ve depolama kullanımı takibi
 - **Aylık Raporlar**: Detaylı aylık yükleme istatistikleri
 - **Sahipsiz Medya Temizliği**: Kullanılmayan medya dosyalarının otomatik temizliği
-- **Hata Ayıklama Bilgisi**: Sorun giderme için kapsamlı kayıt tutma
+- **YENİ v1.4.0'da:** Kapsamlı loglama ile geliştirilmiş hata ayıklama
+- **YENİ v1.4.0'da:** Gelişmiş hata izleme ve raporlama
 
 ### 💻 Kurulum
 
@@ -275,6 +289,7 @@ Eklenti MangaReader tema uyumluluğu için şu meta alanlarını kullanır:
 ```
 
 #### Ayar Seçenekleri
+- **YENİ v1.4.0'da:** Yapılandırılabilir ZIP dosya boyutu limitleri (100MB - 5GB)
 - **Bölüm Ön Eki**: Bölüm başlıkları için varsayılan ön ek (Chapter, Bölüm, vb.)
 - **Otomatik Ana Sayfa İtme**: Mangayı otomatik olarak ana sayfada güncelle
 - **Resim Kalitesi**: JPEG sıkıştırma ayarları (%85-%100)
@@ -309,7 +324,8 @@ manga_chapters.zip
 2. **Multiple Chapters (ZIP)** sekmesini seçin
 3. ZIP dosyası ve manga serisini seçin
 4. Bölüm ön ekini seçin
-5. **Upload ZIP and Process**'e tıklayın
+5. **YENİ v1.4.0'da:** Garantili sıralama ile gerçek zamanlı sıralı işlemeyi izleyin
+6. **Upload ZIP and Process**'e tıklayın
 
 #### Web Sitesinden Çekme
 1. **Fetch from Website** sekmesini seçin
@@ -323,45 +339,60 @@ manga_chapters.zip
 #### Desteklenen Dosya Formatları
 - **Resimler**: JPG, JPEG, PNG, GIF, WebP
 - **Arşivler**: ZIP (çoklu bölümler için)
-- **Maksimum Boyutlar**: Resim başına 10MB, ZIP başına 100MB
+- **Maksimum Boyutlar**: Resim başına 10MB, **YENİ:** 5GB'a kadar yapılandırılabilir ZIP boyutu
 
 #### Ana Sayfa Güncelleme Sistemi
-Bölümler yüklendiğinde, eklenti ana sayfayı şu şekilde günceller:
-- Manga post'unun `post_date` ve `post_modified` zaman damgalarını değiştirir
-- `_last_updated` meta alanını günceller
-- WordPress önbelleğini temizler
-- Temaya özel hook'ları tetikler
+**GELİŞTİRİLDİ v1.4.0'da:** Bölümler yüklendiğinde, eklenti ana sayfayı şu şekilde günceller:
+- Manga post'unun `post_date` ve `post_modified` zaman damgalarını güncel zaman ile değiştirir
+- Daha iyi tema uyumluluğu için birden fazla meta alanını günceller
+- Kapsamlı önbellek temizleme (WordPress önbellek, transients, object cache)
+- Tüm ilgili tema hook'larını tetikler
+- **YENİ:** İnatçı temalar için zorla ana sayfa görünüm sistemi
 
 #### Güvenlik Özellikleri
+- **GELİŞTİRİLDİ v1.4.0'da:** İyileştirilmiş dosya doğrulama ve güvenlik kontrolleri
 - Nonce'lar ile CSRF koruması
 - Dosya türü doğrulaması
 - Boyut sınırı zorlaması
 - Kullanıcı izin kontrolleri
 - Güvenli dosya adlandırma kuralları
+- **YENİ:** Güvenli recursive dizin işlemleri
 
 ### 🚨 Sorun Giderme
 
 #### Yaygın Sorunlar
 
 **Bölümler ana sayfada görünmüyor:**
+- **DÜZELTİLDİ v1.4.0'da:** Birden fazla fallback yöntemi ile geliştirilmiş ana sayfa itme sistemi
 - "Push to Homepage"'in etkin olduğunu doğrulayın
 - Önbellek eklentilerini temizleyin
 - Temanın uygun manga post türü desteğine sahip olduğundan emin olun
 
 **ZIP yükleme hataları:**
+- **GELİŞTİRİLDİ v1.4.0'da:** Daha iyi hata yönetimi ve raporlama
 - ZipArchive PHP uzantısının kurulu olduğunu kontrol edin
 - PHP `memory_limit` ve `max_execution_time` değerlerini artırın
 - Uploads dizininde dosya izinlerini doğrulayın
 
-**Web sitesi çekme hataları:**
-- URL erişilebilirliğini onaylayın
-- Bot koruması veya güvenlik duvarlarını kontrol edin
-- Resim korumasının indirmeleri engellemediğini doğrulayın
+**Bölümler yanlış sırayla yükleniyor:**
+- **DÜZELTİLDİ v1.4.0'da:** Sıralı işleme doğru sırayı garanti eder
+- Artık karışık sıralama sorunları yok (161,163,162,167,164 gibi)
+- Sıralı işleme: 160 → 161 → 162 → 163 → 164... şeklinde çalışır
 
-#### Hata Ayıklama Modu
-Başarısız yüklemeler otomatik olarak hata ayıklama bilgilerini görüntüler. Destek talep ederken bu verileri paylaşın.
+**Zamanlanmış postlar yerine anlık yayınlama:**
+- **DÜZELTİLDİ v1.4.0'da:** Tüm bölümler artık anında yayınlanıyor
+- Artık "zamanlandı" post durumu sorunları yok
+
+#### Debug Modu
+**GELİŞTİRİLDİ v1.4.0'da:** Başarısız yüklemeler, sorun giderme için detaylı bilgiler ile kapsamlı debug bilgilerini otomatik olarak görüntüler.
 
 ### 📈 Performans Optimizasyonu
+
+#### **YENİ v1.4.0'da:** Performans İyileştirmeleri
+- **Sıralı İşleme:** Race condition'ları ortadan kaldırır ve mükemmel sıralama sağlar
+- **Optimize Edilmiş Dosya İşlemleri:** Güvenli ve verimli dosya yönetimi
+- **Geliştirilmiş Önbelleğleme:** Daha iyi performans için akıllı önbellek yönetimi
+- **Azaltılmış Bellek Kullanımı:** Büyük ZIP dosyaları için optimize edildi
 
 #### Öneriler
 - Büyük dosyalar için PHP timeout değerlerini artırın
@@ -370,59 +401,27 @@ Başarısız yüklemeler otomatik olarak hata ayıklama bilgilerini görüntüle
 - Düzenli sahipsiz medya temizliği yapın
 - Resim optimizasyon özelliklerini etkinleştirin
 
-### 🔄 API Entegrasyonu
-
-Eklenti geliştiriciler için hook'lar sağlar:
-
-```php
-// Bölüm yüklendikten sonra
-do_action('mcu_chapter_uploaded', $post_id, $manga_id, $chapter_number);
-
-// Ana sayfa güncellemesinden önce
-do_action('mcu_before_homepage_push', $manga_id, $post_id);
-
-// Resim işleme
-do_action('mcu_process_image', $image_path, $attachment_id);
-```
-
 ### 📞 Destek
 
-- **Sorunlar**: [GitHub Issues](https://github.com/your-username/manga-chapter-uploader/issues)
+- **Sorunlar**: [GitHub Issues](https://github.com/turanbagtur/chapter-uploader/issues)
 - **Web Sitesi**: [mangaruhu.com](https://mangaruhu.com)
 
 ---
 
-## 📝 Changelog
+## 🔄 API Integration / API Entegrasyonu
 
-### v1.3.2
-- ✅ Fixed chapter prefix selection in multiple upload form
-- ✅ Added auto-category selection for all upload methods
-- ✅ Improved error handling and debugging
-- ✅ Enhanced homepage update system
-- ✅ Better form validation and user feedback
+The plugin provides hooks for developers / Eklenti geliştiriciler için hook'lar sağlar:
 
-### v1.3.1
-- ✅ Multiple chapter upload system completed
-- ✅ Blogger fetching with category support
-- ✅ Language switching system improved
-- ✅ Enhanced homepage update mechanism
+```php
+// After chapter upload / Bölüm yüklendikten sonra
+do_action('mcu_chapter_uploaded', $post_id, $manga_id, $chapter_number);
 
-### v1.2.0
-- ✅ Advanced ZIP processing with natural sorting
-- ✅ Website fetching capabilities
-- ✅ Scheduled publishing system
-- ✅ Image optimization features
+// Before homepage update / Ana sayfa güncellemesinden önce
+do_action('mcu_before_homepage_push', $manga_id, $post_id);
 
-### v1.1.0
-- ✅ Basic multiple chapter upload
-- ✅ Statistics and management tools
-- ✅ Auto-increment functionality
-
-### v1.0.0
-- ✅ Initial release with single chapter upload
-- ✅ Drag & drop interface
-- ✅ MangaReader theme compatibility
-
+// Image processing / Resim işleme
+do_action('mcu_process_image', $image_path, $attachment_id);
+```
 
 ---
 
@@ -447,6 +446,8 @@ Bu proje size yardımcı olduysa, lütfen GitHub'da ⭐ verin!
 ## 👥 Authors / Yazarlar
 
 - **Solderet** - *Initial work* - [GitHub](https://github.com/turanbagtur)
+
+---
 
 ## 🙏 Acknowledgments / Teşekkürler
 
