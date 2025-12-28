@@ -13,6 +13,10 @@ if (!defined('ABSPATH')) {
 class MCU_ZipProcessor {
     
     public function process_zip_upload($zip_file, $manga_id, $chapter_category = 0, $push_to_latest = false, $chapter_prefix = 'chapter') {
+        // Uzun işlemler için zaman limitini artır
+        @set_time_limit(600); // 10 dakika
+        @ini_set('max_execution_time', 600);
+        
         // ZIP class kontrolü
         if (!class_exists('ZipArchive')) {
             return array('success' => false, 'message' => 'ZIP extension is not enabled on the server.');
@@ -66,9 +70,8 @@ class MCU_ZipProcessor {
         }
         $zip->close();
 
-        // WordPress dosya işleme fonksiyonlarını dahil et
+        // WordPress dosya işleme fonksiyonlarını dahil et (doğru sırada)
         if (!function_exists('wp_handle_upload')) {
-            require_once(ABSPATH . 'wp-admin/includes/image.php');
             require_once(ABSPATH . 'wp-admin/includes/file.php');
             require_once(ABSPATH . 'wp-admin/includes/media.php');
         }
@@ -77,16 +80,32 @@ class MCU_ZipProcessor {
         $successful_uploads = 0;
         $manga_title = get_the_title($manga_id);
 
-        // Çıkarılan klasörleri tara
+        // Çıkarılan klasörleri tara - DİKKATLE FOLDER PATH KONTROLÜ
         $chapter_folders = $this->get_chapter_folders($extract_path);
 
+        // DEBUG: Toplam klasör sayısı
+        MCU_Logger::info('ZIP processing started', array(
+            'extract_path' => $extract_path,
+            'total_folders' => count($chapter_folders),
+            'folder_list' => $chapter_folders
+        ));
+
         foreach ($chapter_folders as $folder_name) {
-            $folder_path = $extract_path . '/' . $folder_name;
+            // DOĞRU PATH OLUŞTURMA - DIRECTORY_SEPARATOR kullan
+            $folder_path = $extract_path . DIRECTORY_SEPARATOR . $folder_name;
+            
+            // DEBUG: Her klasör işlenirken logla
+            MCU_Logger::debug('Processing chapter folder', array(
+                'folder_name' => $folder_name,
+                'folder_path' => $folder_path,
+                'folder_exists' => is_dir($folder_path)
+            ));
             
             // Klasör adından bölüm numarasını çıkar
             $chapter_number = $this->extract_chapter_number_from_folder($folder_name);
             
             if ($chapter_number === false) {
+                MCU_Logger::warning('Invalid chapter folder name', array('folder' => $folder_name));
                 $results[] = array(
                     'status' => 'error',
                     'message' => sprintf('Invalid chapter folder name: %s. Must start with a number.', $folder_name),
@@ -97,6 +116,7 @@ class MCU_ZipProcessor {
 
             // Aynı bölümün zaten var olup olmadığını kontrol et
             if ($this->chapter_exists($manga_id, $chapter_number)) {
+                MCU_Logger::info('Chapter already exists, skipping', array('chapter' => $chapter_number));
                 $results[] = array(
                     'status' => 'error',
                     'message' => sprintf('Chapter %s already exists, skipping.', $chapter_number),
@@ -105,10 +125,14 @@ class MCU_ZipProcessor {
                 continue;
             }
 
-            // Klasördeki resimleri topla
+            // KRITIK: Klasördeki resimleri topla - FOLDER PATH DOĞRULAĞI
             $images = $this->get_images_from_folder($folder_path);
             
             if (empty($images)) {
+                MCU_Logger::warning('No images found in folder', array(
+                    'folder' => $folder_name,
+                    'path' => $folder_path
+                ));
                 $results[] = array(
                     'status' => 'error',
                     'message' => sprintf('No images found in folder: %s', $folder_name),
@@ -117,10 +141,23 @@ class MCU_ZipProcessor {
                 continue;
             }
 
+            // GÖRSEL TEKRARLANMA SORUNUNUN ÇÖZÜMÜ: Her bölüm için benzersiz resim listesi
+            MCU_Logger::info('Creating chapter from images', array(
+                'folder' => $folder_name,
+                'chapter_number' => $chapter_number,
+                'image_count' => count($images),
+                'sample_images' => array_slice(array_map('basename', $images), 0, 3)
+            ));
+
             // Resimleri yükle ve bölüm oluştur
             $chapter_result = $this->create_chapter_from_images($manga_id, $chapter_number, $folder_name, $images, $chapter_category, $chapter_prefix);
             
             if ($chapter_result['success']) {
+                MCU_Logger::info('Chapter created successfully', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'post_link' => $chapter_result['post_link']
+                ));
                 $results[] = array(
                     'status' => 'success',
                     'message' => sprintf('Chapter %s uploaded successfully.', $chapter_number),
@@ -129,21 +166,27 @@ class MCU_ZipProcessor {
                 );
                 $successful_uploads++;
             } else {
+                MCU_Logger::error('Chapter creation failed', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'error' => $chapter_result['message']
+                ));
                 $results[] = array(
                     'status' => 'error',
                     'message' => $chapter_result['message'],
                     'folder' => $folder_name
                 );
             }
+            
+            // BELLEK TEMİZLEME: Her bölümden sonra cache temizle
+            if (function_exists('wp_cache_flush')) wp_cache_flush();
         }
 
-        // Ana sayfa güncelleme
-        if ($successful_uploads > 0 && $push_to_latest) {
-            $uploader = new MangaChapterUploader();
-            if (method_exists($uploader, 'push_series_to_latest_update')) {
-                $uploader->push_series_to_latest_update($manga_id);
-            }
-        }
+        // ANA SAYFA GÜNCELLEMESİNİ SADECE FİNALİZE'DA YAP (Sıralama karışmasın diye)
+        MCU_Logger::info('Batch upload completed, homepage update will be done in finalize', array(
+            'manga_id' => $manga_id,
+            'successful_uploads' => $successful_uploads
+        ));
 
         // Geçici dosyaları temizle
         $this->cleanup_temp_dir($temp_dir);
@@ -170,10 +213,11 @@ class MCU_ZipProcessor {
         }
         
         // Klasör adlarını sayısal sıralama ile sırala (1, 2, 3, 10, 11 gibi)
-        usort($chapter_folders, function($a, $b) {
+        $self = $this; // PHP closure için $this referansı
+        usort($chapter_folders, function($a, $b) use ($self) {
             // Klasör adlarından sayıları çıkar
-            $num_a = $this->extract_chapter_number_from_folder($a);
-            $num_b = $this->extract_chapter_number_from_folder($b);
+            $num_a = $self->extract_chapter_number_from_folder($a);
+            $num_b = $self->extract_chapter_number_from_folder($b);
             
             if ($num_a === false) $num_a = PHP_INT_MAX;
             if ($num_b === false) $num_b = PHP_INT_MAX;
@@ -220,15 +264,31 @@ class MCU_ZipProcessor {
         $images = array();
         $allowed_extensions = array('jpg', 'jpeg', 'png', 'gif', 'webp');
         
+        // DEBUG: Folder path'i loglayalım
+        MCU_Logger::debug('Getting images from folder', array('path' => $folder_path, 'exists' => is_dir($folder_path)));
+        
         if (!is_dir($folder_path)) {
+            MCU_Logger::warning('Folder not found', array('path' => $folder_path));
             return $images;
         }
         
-        $files = scandir($folder_path);
+        // Realpath ile gerçek path'i al
+        $real_folder_path = realpath($folder_path);
+        if (!$real_folder_path) {
+            MCU_Logger::error('Invalid folder path', array('path' => $folder_path));
+            return $images;
+        }
+        
+        $files = scandir($real_folder_path);
+        if ($files === false) {
+            MCU_Logger::error('Cannot read folder', array('path' => $real_folder_path));
+            return $images;
+        }
+        
         foreach ($files as $file) {
             if ($file === '.' || $file === '..') continue;
             
-            $file_path = $folder_path . '/' . $file;
+            $file_path = $real_folder_path . DIRECTORY_SEPARATOR . $file;
             if (is_file($file_path)) {
                 $file_extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                 if (in_array($file_extension, $allowed_extensions)) {
@@ -239,54 +299,138 @@ class MCU_ZipProcessor {
         
         // Dosyaları doğal sıralama ile sırala (1.jpg, 2.jpg, 10.jpg)
         natsort($images);
-        return array_values($images);
+        $final_images = array_values($images);
+        
+        // DEBUG: Bulunan resimleri logla
+        MCU_Logger::debug('Images found in folder', array(
+            'folder' => basename($real_folder_path),
+            'image_count' => count($final_images),
+            'first_image' => !empty($final_images) ? basename($final_images[0]) : 'none'
+        ));
+        
+        return $final_images;
     }
     
     private function create_chapter_from_images($manga_id, $chapter_number, $folder_name, $images, $chapter_category, $chapter_prefix = 'chapter') {
         $uploaded_images = array();
         $upload_overrides = array('test_form' => false);
-
+        
+        // DEBUG: İşlenen klasör ve resim bilgileri
+        MCU_Logger::debug('Creating chapter from images', array(
+            'folder' => $folder_name,
+            'chapter' => $chapter_number,
+            'image_count' => count($images),
+            'first_image_path' => !empty($images) ? $images[0] : 'none'
+        ));
+        
+        // PERFORMANS: Thumbnail oluşturmayı geçici olarak devre dışı bırak
+        add_filter('intermediate_image_sizes_advanced', '__return_empty_array');
+        
+        // Her resim yolunu debug et
+        $image_index = 0;
         foreach ($images as $image_path) {
+            $image_index++;
+            
+            // DEBUG: İşlenen resim yolunu logla
+            MCU_Logger::debug('Processing image', array(
+                'folder' => $folder_name,
+                'chapter' => $chapter_number,
+                'image_index' => $image_index,
+                'image_path' => $image_path,
+                'file_exists' => file_exists($image_path),
+                'is_readable' => is_readable($image_path)
+            ));
+            
+            // Dosya var mı kontrol et - GÜVENLİ YÖNTEM
+            if (!file_exists($image_path) || !is_readable($image_path)) {
+                MCU_Logger::warning('Image file not accessible', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'image_path' => $image_path
+                ));
+                continue;
+            }
+            
+            // Dosya boyutunu güvenli şekilde al
+            $file_size = @filesize($image_path);
+            if ($file_size === false || $file_size === 0) {
+                MCU_Logger::warning('Image file size invalid', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'image_path' => $image_path,
+                    'file_size' => $file_size
+                ));
+                continue;
+            }
+            
+            // Benzersiz dosya adı oluştur (çakışma önleme)
+            $original_filename = basename($image_path);
+            $unique_filename = $folder_name . '_' . $chapter_number . '_' . $image_index . '_' . $original_filename;
+            
             $file_array = array(
-                'name' => basename($image_path),
+                'name' => $unique_filename,
                 'tmp_name' => $image_path,
                 'error' => UPLOAD_ERR_OK,
-                'size' => filesize($image_path)
+                'size' => $file_size
             );
 
-            // Dosya türünü manuel belirle
             $file_info = wp_check_filetype($file_array['name']);
             $file_array['type'] = $file_info['type'];
 
-            // wp_handle_sideload kullan (geçici dosya için)
             $sideload = wp_handle_sideload($file_array, $upload_overrides);
 
             if (!empty($sideload['error'])) {
-                continue; // Hata varsa bu dosyayı atla
+                MCU_Logger::error('Image sideload failed', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'image_path' => $image_path,
+                    'error' => $sideload['error']
+                ));
+                continue;
             }
 
             $attachment_id = wp_insert_attachment(array(
                 'guid' => $sideload['url'],
                 'post_mime_type' => $sideload['type'],
-                'post_title' => preg_replace('/\.[^.]+$/', '', basename($sideload['file'])),
+                'post_title' => $folder_name . ' Chapter ' . $chapter_number . ' Image ' . $image_index,
                 'post_content' => '',
                 'post_status' => 'inherit'
             ), $sideload['file']);
 
             if (!is_wp_error($attachment_id)) {
-                wp_update_attachment_metadata($attachment_id, wp_generate_attachment_metadata($attachment_id, $sideload['file']));
+                // PERFORMANS: Minimal metadata
+                wp_update_attachment_metadata($attachment_id, array(
+                    'file' => _wp_relative_upload_path($sideload['file'])
+                ));
                 $uploaded_images[] = wp_get_attachment_image($attachment_id, 'full');
                 
-                // Resim işleme
-                global $mcu_image_processor;
-                if ($mcu_image_processor) {
-                    $mcu_image_processor->process_image($sideload['file'], $attachment_id);
-                }
+                MCU_Logger::debug('Image uploaded successfully', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'attachment_id' => $attachment_id,
+                    'image_index' => $image_index
+                ));
+            } else {
+                MCU_Logger::error('Failed to create attachment', array(
+                    'folder' => $folder_name,
+                    'chapter' => $chapter_number,
+                    'error' => $attachment_id->get_error_message()
+                ));
             }
         }
+        
+        // Thumbnail filtresini geri al
+        remove_filter('intermediate_image_sizes_advanced', '__return_empty_array');
+
+        MCU_Logger::info('Chapter images processed', array(
+            'folder' => $folder_name,
+            'chapter' => $chapter_number,
+            'total_images' => count($images),
+            'uploaded_images' => count($uploaded_images)
+        ));
 
         if (empty($uploaded_images)) {
-            return array('success' => false, 'message' => 'No images could be processed');
+            return array('success' => false, 'message' => 'No images could be processed for ' . $folder_name);
         }
 
         // Bölüm başlığını oluştur
@@ -319,16 +463,63 @@ class MCU_ZipProcessor {
             $post_title .= ' - ' . $chapter_title;
         }
 
-        // Bölüm post'unu oluştur
+        // SIRALI POST TARİHİ HESAPLAMA - DOĞRU LOJİK DÜZELTME
+        $base_time = current_time('timestamp');
+        $chapter_num = floatval($chapter_number);
+        
+        // DOĞRU SIRALAMA: Yüksek bölüm = YENİ tarih (WordPress sıralaması için)
+        $seconds_per_chapter = 5; // Her bölüm 5 saniye aralık
+        $seconds_offset = ($chapter_num - 1) * $seconds_per_chapter;
+        $chapter_timestamp = $base_time - 1800 + $seconds_offset; // 30dk öncesinden başla
+        
+        // GÜVENLİK: Gelecek tarihe çıkmasın (1dk önce max)
+        if ($chapter_timestamp > $base_time - 60) {
+            $chapter_timestamp = $base_time - 60;
+        }
+        
+        $chapter_date = date('Y-m-d H:i:s', $chapter_timestamp);
+        $chapter_date_gmt = gmdate('Y-m-d H:i:s', $chapter_timestamp);
+
+        // Bölüm post'unu oluştur - DİREKT YAYINLAMA
         $new_post = array(
             'post_title' => $post_title,
             'post_content' => implode("\n", $uploaded_images),
-            'post_status' => 'publish',
+            'post_status' => 'publish', // Direkt yayınla
             'post_type' => 'post',
-            'post_author' => get_current_user_id()
+            'post_author' => get_current_user_id(),
+            'post_date' => $chapter_date,
+            'post_date_gmt' => $chapter_date_gmt,
+            'post_modified' => $chapter_date,
+            'post_modified_gmt' => $chapter_date_gmt
         );
 
         $new_post_id = wp_insert_post($new_post);
+        
+        // EK GÜVENCELİK: Post durumunu zorla publish yap
+        if (!is_wp_error($new_post_id)) {
+            global $wpdb;
+            $wpdb->update(
+                $wpdb->posts,
+                array(
+                    'post_status' => 'publish', // Zorla yayınla
+                    'post_date' => $chapter_date,
+                    'post_date_gmt' => $chapter_date_gmt,
+                    'post_modified' => $chapter_date,
+                    'post_modified_gmt' => $chapter_date_gmt
+                ),
+                array('ID' => $new_post_id),
+                array('%s', '%s', '%s', '%s', '%s'),
+                array('%d')
+            );
+            
+            MCU_Logger::debug('Chapter published immediately', array(
+                'chapter' => $chapter_number,
+                'post_id' => $new_post_id,
+                'status' => 'publish',
+                'timestamp' => $chapter_timestamp,
+                'date' => $chapter_date
+            ));
+        }
 
         if (is_wp_error($new_post_id)) {
             return array('success' => false, 'message' => 'Error creating chapter post');
@@ -339,10 +530,10 @@ class MCU_ZipProcessor {
             wp_set_post_categories($new_post_id, array($chapter_category));
         }
 
-        // Meta verileri kaydet - MangaChapterUploader instance'ı oluştur
-        $uploader = new MangaChapterUploader();
-        if (method_exists($uploader, 'save_theme_compatible_meta')) {
-            $uploader->save_theme_compatible_meta($new_post_id, $chapter_number, $chapter_title, $manga_id, $uploaded_images);
+        // Meta verileri kaydet - global instance kullan
+        global $manga_chapter_uploader;
+        if ($manga_chapter_uploader && method_exists($manga_chapter_uploader, 'save_theme_compatible_meta')) {
+            $manga_chapter_uploader->save_theme_compatible_meta($new_post_id, $chapter_number, $chapter_title, $manga_id, $uploaded_images);
         } else {
             // Fallback - manuel meta kaydetme
             update_post_meta($new_post_id, 'ero_chapter', $chapter_number);
@@ -361,35 +552,330 @@ class MCU_ZipProcessor {
             'post_link' => get_permalink($new_post_id)
         );
     }
-    
+
     private function cleanup_temp_dir($dir_path) {
         if (!is_dir($dir_path)) {
             return;
         }
         
-        $files = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($dir_path, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
+        // GÜVENLİK: Path validation
+        $upload_dir = wp_upload_dir();
+        $base_temp_dir = $upload_dir['basedir'];
         
-        foreach ($files as $file) {
-            if ($file->isDir()) {
-                rmdir($file->getRealPath());
-            } else {
-                unlink($file->getRealPath());
+        // Sadece temp dizinleri altındaki dosyaları sil
+        if (strpos(realpath($dir_path), realpath($base_temp_dir)) !== 0) {
+            return;
+        }
+        
+        // PERFORMANS KORUYUCU: Hızlı ve güvenli cleanup
+        $this->safe_recursive_delete($dir_path);
+    }
+    
+    // Yeni güvenli recursive delete fonksiyonu
+    private function safe_recursive_delete($dir_path) {
+        if (!is_dir($dir_path)) {
+            return;
+        }
+        
+        try {
+            // Önce basit scandir ile kontrol et (daha hızlı)
+            $items = @scandir($dir_path);
+            if ($items === false) {
+                // Dizin okunamıyor, basit silme dene
+                @rmdir($dir_path);
+                return;
+            }
+            
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') continue;
+                
+                $item_path = $dir_path . DIRECTORY_SEPARATOR . $item;
+                
+                if (is_dir($item_path)) {
+                    // Recursive olarak alt dizinleri sil
+                    $this->safe_recursive_delete($item_path);
+                } else {
+                    // Dosyayı sil
+                    @unlink($item_path);
+                }
+            }
+            
+            // Son olarak ana dizini sil
+            @rmdir($dir_path);
+            
+        } catch (Exception $e) {
+            // Bu normal bir durum (dizin zaten silinmiş), DEBUG level'da logla
+            MCU_Logger::debug('Cleanup notice: ' . $e->getMessage(), array('dir' => basename($dir_path)));
+            
+            // Fallback: zorla silme dene
+            @rmdir($dir_path);
+        }
+    }
+
+    private function update_manga_timestamp($manga_id) {
+        $manga_post = get_post($manga_id);
+        if (!$manga_post || $manga_post->post_type !== 'manga') {
+            return false;
+        }
+
+        $current_time = current_time('mysql');
+        $current_time_gmt = current_time('mysql', 1);
+        
+        global $wpdb;
+        
+        // Post tarihlerini güncelle
+        $wpdb->update(
+            $wpdb->posts,
+            array(
+                'post_modified' => $current_time,
+                'post_modified_gmt' => $current_time_gmt,
+                'post_date' => $current_time,
+                'post_date_gmt' => $current_time_gmt
+            ),
+            array('ID' => $manga_id),
+            array('%s', '%s', '%s', '%s'),
+            array('%d')
+        );
+
+        // Tüm olası meta key'leri güncelle
+        $meta_keys = array('_last_updated', 'ts_edit_post_push_cb', '_latest_update', 'latest_update', '_manga_latest_update');
+        foreach ($meta_keys as $key) {
+            $value = ($key === 'ts_edit_post_push_cb') ? $current_time : $current_time;
+            update_post_meta($manga_id, $key, $value);
+            if (function_exists('rwmb_set_meta')) {
+                rwmb_set_meta($manga_id, $key, $value);
+            }
+        }
+
+        // Cache ve transient temizle
+        clean_post_cache($manga_id);
+        wp_cache_delete($manga_id, 'posts');
+        wp_cache_delete($manga_id, 'post_meta');
+        if (function_exists('wp_cache_flush')) wp_cache_flush();
+        
+        // Transient temizle
+        delete_transient('manga_latest_updates');
+        delete_transient('homepage_manga_list');
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_manga%'");
+        
+        // Hook'ları tetikle
+        do_action('save_post', $manga_id, $manga_post, true);
+        do_action('save_post_manga', $manga_id, $manga_post, true);
+        
+        return true;
+    }
+
+    // AŞAMALI İŞLEME - Aşama 1: ZIP'i hazırla ve bölüm listesini döndür
+    public function prepare_zip_upload($zip_file) {
+        if (!class_exists('ZipArchive')) {
+            return array('success' => false, 'message' => 'ZIP extension is not enabled.');
+        }
+        if ($zip_file['error'] !== UPLOAD_ERR_OK) {
+            return array('success' => false, 'message' => 'ZIP upload error.');
+        }
+        $upload_dir = wp_upload_dir();
+        $session_id = 'mcu_' . uniqid();
+        $temp_dir = $upload_dir['basedir'] . '/temp_' . $session_id;
+        if (!wp_mkdir_p($temp_dir)) {
+            return array('success' => false, 'message' => 'Could not create temp directory.');
+        }
+        $zip_path = $temp_dir . '/chapters.zip';
+        if (!move_uploaded_file($zip_file['tmp_name'], $zip_path)) {
+            $this->cleanup_temp_dir($temp_dir);
+            return array('success' => false, 'message' => 'Could not move ZIP file.');
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($zip_path) !== TRUE) {
+            $this->cleanup_temp_dir($temp_dir);
+            return array('success' => false, 'message' => 'Could not open ZIP file.');
+        }
+        $extract_path = $temp_dir . '/extracted';
+        if (!$zip->extractTo($extract_path)) {
+            $zip->close();
+            $this->cleanup_temp_dir($temp_dir);
+            return array('success' => false, 'message' => 'Could not extract ZIP.');
+        }
+        $zip->close();
+        @unlink($zip_path);
+        $chapter_folders = $this->get_chapter_folders($extract_path);
+        
+        // SIRALI BÖLÜM İŞLEME İÇİN SIRALAMA
+        $chapters = array();
+        foreach ($chapter_folders as $folder) {
+            $num = $this->extract_chapter_number_from_folder($folder);
+            if ($num !== false) {
+                $chapters[] = array('folder' => $folder, 'number' => $num);
             }
         }
         
-        rmdir($dir_path);
+        // Bölümleri sayısal olarak sırala (160, 161, 162, ... şeklinde)
+        usort($chapters, function($a, $b) {
+            return floatval($a['number']) <=> floatval($b['number']);
+        });
+        
+        if (empty($chapters)) {
+            $this->cleanup_temp_dir($temp_dir);
+            return array('success' => false, 'message' => 'No valid chapter folders found.');
+        }
+        set_transient('mcu_session_' . $session_id, array('temp_dir' => $temp_dir, 'extract_path' => $extract_path), 3600);
+        return array('success' => true, 'session_id' => $session_id, 'chapters' => $chapters, 'total' => count($chapters));
+    }
+    
+    public function process_single_chapter_from_session($session_id, $folder_name, $manga_id, $chapter_category, $chapter_prefix) {
+        $session = get_transient('mcu_session_' . $session_id);
+        if (!$session) return array('success' => false, 'message' => 'Session expired.');
+        $folder_path = $session['extract_path'] . '/' . $folder_name;
+        if (!is_dir($folder_path)) return array('success' => false, 'message' => 'Folder not found.');
+        $chapter_number = $this->extract_chapter_number_from_folder($folder_name);
+        if ($chapter_number === false) return array('success' => false, 'message' => 'Invalid chapter number.');
+        if ($this->chapter_exists($manga_id, $chapter_number)) return array('success' => false, 'message' => 'Chapter exists.', 'skipped' => true);
+        $images = $this->get_images_from_folder($folder_path);
+        if (empty($images)) return array('success' => false, 'message' => 'No images found.');
+        if (!function_exists('wp_handle_upload')) {
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+        }
+        return $this->create_chapter_from_images($manga_id, $chapter_number, $folder_name, $images, $chapter_category, $chapter_prefix);
+    }
+    
+    public function finalize_session($session_id, $manga_id, $push_to_latest) {
+        $session = get_transient('mcu_session_' . $session_id);
+        if ($session && isset($session['temp_dir'])) $this->cleanup_temp_dir($session['temp_dir']);
+        delete_transient('mcu_session_' . $session_id);
+        
+        // ZORUNLU ANA SAYFA GÜNCELLEMESİ - GÜNCEL TARİH İLE ZORLA PUSH
+        if ($manga_id && $push_to_latest) {
+            MCU_Logger::info('Finalizing session with CURRENT timestamp homepage update', array(
+                'session_id' => $session_id,
+                'manga_id' => $manga_id,
+                'push_to_latest' => $push_to_latest
+            ));
+            
+            // DİREKT GÜNCEL TARİH İLE MANGA'YI GÜNCELLE (bölüm tarihlerini değil!)
+            global $manga_chapter_uploader;
+            if ($manga_chapter_uploader && method_exists($manga_chapter_uploader, 'push_series_to_latest_update')) {
+                $push_result = $manga_chapter_uploader->push_series_to_latest_update($manga_id);
+                MCU_Logger::info('Finalize homepage push with CURRENT TIME result', array('result' => $push_result, 'manga_id' => $manga_id));
+            } else {
+                // Fallback: Güncel timestamp ile güncelle
+                $current_time = current_time('mysql');
+                $current_timestamp = current_time('timestamp');
+                global $wpdb;
+                $wpdb->update($wpdb->posts,
+                    array('post_modified' => $current_time, 'post_date' => $current_time),
+                    array('ID' => $manga_id), array('%s', '%s'), array('%d'));
+                update_post_meta($manga_id, '_last_updated', $current_timestamp);
+                update_post_meta($manga_id, 'ts_edit_post_push_cb', $current_time);
+                MCU_Logger::info('Used fallback push with CURRENT TIME', array('manga_id' => $manga_id));
+            }
+        }
+        
+        return array('success' => true);
+    }
+    
+    // Yeni fonksiyon: Manga'yı EN YÜKSEK NUMARALI bölümün tarihi ile güncelle
+    private function update_manga_with_latest_chapter_date($manga_id) {
+        global $wpdb;
+        
+        // Bu manga'nın EN YÜKSEK NUMARALI bölümünü bul ANCAK GÜNCEL TARİH İLE GÜNCELLE
+        $latest_chapter = $wpdb->get_row($wpdb->prepare("
+            SELECT p.ID, p.post_date, p.post_date_gmt, pm1.meta_value as chapter_number,
+                   pm2.meta_value as chapter_num_for_sort
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id AND pm1.meta_key = 'ero_seri'
+            INNER JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id AND pm2.meta_key = 'ero_chapter'
+            WHERE p.post_type = 'post'
+            AND p.post_status = 'publish'
+            AND pm1.meta_value = %s
+            ORDER BY CAST(pm2.meta_value AS DECIMAL(10,2)) DESC, p.ID DESC
+            LIMIT 1
+        ", $manga_id));
+        
+        if ($latest_chapter) {
+            // GÜNCEL TARİH KULLAN - geçmişte kalmayalım
+            $current_time = current_time('mysql');
+            $current_time_gmt = current_time('mysql', 1);
+            $current_timestamp = current_time('timestamp');
+            
+            // Manga'nın tarihini GÜNCEL tarih ile güncelle (eski bölüm tarihiyle değil)
+            $wpdb->update(
+                $wpdb->posts,
+                array(
+                    'post_modified' => $current_time,
+                    'post_modified_gmt' => $current_time_gmt,
+                    'post_date' => $current_time,
+                    'post_date_gmt' => $current_time_gmt
+                ),
+                array('ID' => $manga_id, 'post_type' => 'manga'),
+                array('%s', '%s', '%s', '%s'),
+                array('%d', '%s')
+            );
+            
+            // Meta verileri de GÜNCEL timestamp ile güncelle
+            $meta_updates = array(
+                '_last_updated' => $current_timestamp,
+                'ts_edit_post_push_cb' => $current_time,
+                '_latest_update' => $current_timestamp,
+                'latest_update' => $current_timestamp,
+                '_manga_latest_update' => $current_timestamp,
+                'manga_latest_update' => $current_timestamp,
+                '_homepage_update_timestamp' => $current_timestamp
+            );
+            
+            foreach ($meta_updates as $key => $value) {
+                update_post_meta($manga_id, $key, $value);
+            }
+            
+            // Cache temizleme - ana sayfa sıralaması için kritik
+            clean_post_cache($manga_id);
+            wp_cache_delete($manga_id, 'posts');
+            wp_cache_delete($manga_id, 'post_meta');
+            
+            // Transient'ları temizle - ana sayfa listesi için
+            delete_transient('manga_latest_updates');
+            delete_transient('homepage_manga_list');
+            delete_transient('latest_manga');
+            
+            MCU_Logger::info('Manga updated with current timestamp', array(
+                'manga_id' => $manga_id,
+                'latest_chapter_id' => $latest_chapter->ID,
+                'highest_chapter_number' => $latest_chapter->chapter_num_for_sort,
+                'updated_with_current_time' => $current_time,
+                'timestamp' => $current_timestamp
+            ));
+        }
+    }
+    
+    // Yeni fonksiyon: Zorla ana sayfada görünme
+    private function force_homepage_appearance($manga_id) {
+        global $wpdb;
+        
+        $current_time = current_time('mysql');
+        $current_time_gmt = current_time('mysql', 1);
+        $timestamp = current_time('timestamp');
+        
+        // Post'u zorla güncelle
+        $wpdb->query($wpdb->prepare("
+            UPDATE {$wpdb->posts}
+            SET post_modified = %s, post_modified_gmt = %s, post_date = %s, post_date_gmt = %s
+            WHERE ID = %d AND post_type = 'manga'
+        ", $current_time, $current_time_gmt, $current_time, $current_time_gmt, $manga_id));
+        
+        // Özel homepage flag'ları
+        update_option('_force_homepage_manga_' . $manga_id, $timestamp);
+        update_post_meta($manga_id, '_force_latest_update', $timestamp);
+        update_post_meta($manga_id, '_homepage_priority', 1);
+        
+        // Transient'ları temizle
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_%manga%' OR option_name LIKE '%_transient_%latest%' OR option_name LIKE '%_transient_%homepage%'");
+        
+        MCU_Logger::info('Forced homepage appearance', array('manga_id' => $manga_id, 'timestamp' => $timestamp));
     }
 }
 
 // Resim İşleme ve Optimizasyon Sınıfı
 class MCU_ImageProcessor {
-    
-    public function __construct() {
-        // Watermark ayarları kaldırıldı
-    }
+    public function __construct() {}
     
     public function process_image($image_path, $attachment_id = null) {
         if (!file_exists($image_path)) {
@@ -701,7 +1187,7 @@ class MCU_ScheduledPublisher {
             'post_status' => 'draft'
         ));
         
-        // Zamanlaı event oluştur
+        // Zamanlı event oluştur
         wp_schedule_single_event($timestamp, 'mcu_publish_scheduled_chapter', array($post_id));
         
         // Scheduled meta ekle
