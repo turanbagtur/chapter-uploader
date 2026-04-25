@@ -3,14 +3,14 @@
  * Plugin Name: Manga Chapter Uploader
  * Plugin URI: https://mangaruhu.com
  * Description: MangaReader theme compatible single and multiple manga chapter upload plugin with internationalization support.
- * Version: 1.4.0
+ * Version: 1.6.0
  * Author: Solderet
  * Author URI: https://mangaruhu.com
  * License: GPL2
  * Text Domain: manga-chapter-uploader
  * Domain Path: /languages
  * Requires at least: 5.0
- * Tested up to: 6.4
+ * Tested up to: 6.7
  * Requires PHP: 7.4
  */
 
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin sabitlerini tanımla
-define('MCU_VERSION', '1.4.0');
+define('MCU_VERSION', '1.6.0');
 define('MCU_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MCU_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('MCU_TEXT_DOMAIN', 'manga-chapter-uploader');
@@ -32,8 +32,8 @@ require_once MCU_PLUGIN_DIR . 'includes/class-chunk-uploader.php';
 require_once MCU_PLUGIN_DIR . 'includes/class-batch-processor.php';
 require_once MCU_PLUGIN_DIR . 'includes/class-rest-api.php';
 
-// Global instances
-global $mcu_logger, $mcu_rate_limiter, $mcu_chunk_uploader, $mcu_batch_processor, $mcu_rest_api;
+// Global instances (mcu_logger static sınıf olduğundan instance'a gerek yok)
+global $mcu_rate_limiter, $mcu_chunk_uploader, $mcu_batch_processor, $mcu_rest_api;
 $mcu_rate_limiter = new MCU_RateLimiter();
 $mcu_chunk_uploader = new MCU_ChunkUploader();
 $mcu_batch_processor = new MCU_BatchProcessor();
@@ -59,6 +59,10 @@ class MangaChapterUploader {
         add_action('wp_ajax_auto_increment_chapter', array($this, 'handle_auto_increment_chapter'));
         add_action('wp_ajax_cleanup_orphaned_media', array($this, 'handle_cleanup_orphaned_media'));
         add_action('mcu_publish_scheduled_chapter', array($this, 'publish_scheduled_chapter'), 10, 1);
+        
+        // BÖLÜM SİLİNDİĞİNDE GÖRSELLERİ DE TEMİZLE (Fast Sideload modu için)
+        add_action('before_delete_post', array($this, 'cleanup_chapter_images_on_delete'), 10, 1);
+        add_action('wp_trash_post', array($this, 'cleanup_chapter_images_on_delete'), 10, 1);
         
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
@@ -111,7 +115,7 @@ class MangaChapterUploader {
         
         if (!post_type_exists('manga')) {
             echo '<div class="notice notice-error"><p>';
-            echo sprintf(__('The "manga" post type is not registered. Please ensure your theme supports manga functionality.', MCU_TEXT_DOMAIN));
+            echo __('The "manga" post type is not registered. Please ensure your theme supports manga functionality.', MCU_TEXT_DOMAIN);
             echo '</p></div>';
         }
     }
@@ -225,8 +229,15 @@ class MangaChapterUploader {
         ?>
         <div class="wrap manga-uploader-wrapper">
             <div class="manga-uploader-header">
+                <div style="float: right; margin-top: 15px;">
+                    <a href="https://ko-fi.com/solderet" target="_blank" class="button button-primary" style="background-color: #29abe0; border-color: #29abe0; color: #fff; box-shadow: 0 1px 0 #1e8bb8; text-decoration: none; padding: 5px 15px; font-size: 14px; height: auto; display: flex; align-items: center; gap: 5px;">
+                        <span class="dashicons dashicons-heart" style="color: #ff5e5e;"></span> 
+                        Support the Developer | Geliştiriciye Destek Ol
+                    </a>
+                </div>
                 <h1><?php _e('Manga Chapter Uploader', MCU_TEXT_DOMAIN); ?> <span class="plugin-version">v<?php echo MCU_VERSION; ?></span></h1>
                 <p class="plugin-description"><?php _e('Advanced manga chapter upload plugin with multiple sources and automatic homepage updates.', MCU_TEXT_DOMAIN); ?></p>
+                <div style="clear: both;"></div>
             </div>
 
             <div class="manga-uploader-container">
@@ -956,6 +967,56 @@ class MangaChapterUploader {
         }
     }
 
+    /**
+     * Bölüm postu silindiğinde veya çöpe atıldığında ilgili görsel klasörünü temizle.
+     * Fast Sideload modunda görseller wp-content/uploads/manga_chapters/{manga_id}/ch_{chapter_number}/ içinde.
+     */
+    public function cleanup_chapter_images_on_delete($post_id) {
+        // Sadece 'post' türündeki postları kontrol et
+        if (get_post_type($post_id) !== 'post') {
+            return;
+        }
+
+        $manga_id = get_post_meta($post_id, 'ero_seri', true);
+        $chapter_number = get_post_meta($post_id, 'ero_chapter', true);
+
+        // Bu meta değerleri yoksa manga bölümü değildir, çık
+        if (empty($manga_id) || empty($chapter_number)) {
+            return;
+        }
+
+        $upload_dir = wp_upload_dir();
+        $chapter_dir = $upload_dir['basedir'] . '/manga_chapters/' . $manga_id . '/ch_' . $chapter_number;
+
+        if (is_dir($chapter_dir)) {
+            // Klasördeki tüm dosyaları sil
+            $files = glob($chapter_dir . '/*');
+            if ($files) {
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        @unlink($file);
+                    }
+                }
+            }
+            // Klasörü sil
+            @rmdir($chapter_dir);
+
+            MCU_Logger::info('Chapter images cleaned up on delete', array(
+                'post_id' => $post_id,
+                'manga_id' => $manga_id,
+                'chapter' => $chapter_number,
+                'dir' => $chapter_dir
+            ));
+
+            // Manga klasörü boşsa onu da sil
+            $manga_dir = $upload_dir['basedir'] . '/manga_chapters/' . $manga_id;
+            $remaining = glob($manga_dir . '/*');
+            if (empty($remaining)) {
+                @rmdir($manga_dir);
+            }
+        }
+    }
+
     // UPLOAD FONKSİYONLARI
     public function handle_single_chapter_upload() {
         if (!check_ajax_referer('manga_uploader_nonce', 'nonce', false)) {
@@ -1013,10 +1074,14 @@ class MangaChapterUploader {
             require_once(ABSPATH . 'wp-admin/includes/media.php');
         }
 
-        $upload_overrides = array('test_form' => false);
+        // FAST SIDELOAD MODE - Görseller doğrudan manga_chapters klasörüne kaydedilir (Ortam Kütüphanesi bypass)
+        $upload_dir = wp_upload_dir();
+        $manga_dir = $upload_dir['basedir'] . '/manga_chapters/' . $manga_id . '/ch_' . $chapter_number;
+        $manga_url = $upload_dir['baseurl'] . '/manga_chapters/' . $manga_id . '/ch_' . $chapter_number;
 
-        // PERFORMANS: Thumbnail oluşturmayı devre dışı bırak
-        add_filter('intermediate_image_sizes_advanced', '__return_empty_array');
+        if (!wp_mkdir_p($manga_dir)) {
+            wp_send_json_error(array('message' => __('Cannot create directory for chapter images', MCU_TEXT_DOMAIN)));
+        }
 
         if (!empty($_FILES['chapter_images']['name'][0])) {
             $files = $_FILES['chapter_images'];
@@ -1024,40 +1089,19 @@ class MangaChapterUploader {
 
             for ($i = 0; $i < $file_count; $i++) {
                 if ($files['error'][$i] === UPLOAD_ERR_OK) {
-                    $file_to_upload = array(
-                        'name'     => sanitize_file_name($files['name'][$i]),
-                        'type'     => $files['type'][$i],
-                        'tmp_name' => $files['tmp_name'][$i],
-                        'error'    => $files['error'][$i],
-                        'size'     => $files['size'][$i],
-                    );
+                    $image_index = $i + 1;
+                    $safe_filename = sanitize_file_name($files['name'][$i]);
+                    $unique_filename = str_pad($image_index, 3, '0', STR_PAD_LEFT) . '_' . $safe_filename;
                     
-                    $movefile = wp_handle_upload($file_to_upload, $upload_overrides);
+                    $final_file_path = $manga_dir . DIRECTORY_SEPARATOR . $unique_filename;
+                    $final_file_url = $manga_url . '/' . $unique_filename;
 
-                    if ($movefile && !isset($movefile['error'])) {
-                        $attach_id = wp_insert_attachment(array(
-                            'guid'           => $movefile['url'],
-                            'post_mime_type' => $movefile['type'],
-                            'post_title'     => pathinfo($movefile['file'], PATHINFO_FILENAME),
-                            'post_content'   => '',
-                            'post_status'    => 'inherit'
-                        ), $movefile['file']);
-                        
-                        if (!is_wp_error($attach_id)) {
-                            // PERFORMANS: Sadece temel metadata
-                            $metadata = array('file' => _wp_relative_upload_path($movefile['file']), 'width' => 0, 'height' => 0);
-                            $img_size = @getimagesize($movefile['file']);
-                            if ($img_size) { $metadata['width'] = $img_size[0]; $metadata['height'] = $img_size[1]; }
-                            wp_update_attachment_metadata($attach_id, $metadata);
-                            $uploaded_images[] = wp_get_attachment_image($attach_id, 'full');
-                        }
+                    if (move_uploaded_file($files['tmp_name'][$i], $final_file_path)) {
+                        $uploaded_images[] = '<img src="' . esc_url($final_file_url) . '" alt="' . esc_attr($chapter_number . ' image ' . $image_index) . '" class="aligncenter size-full wp-image" />';
                     }
                 }
             }
         }
-
-        // Filtreyi geri al
-        remove_filter('intermediate_image_sizes_advanced', '__return_empty_array');
 
         $post_title = $this->create_chapter_title($manga_id, $chapter_prefix, $chapter_number, $chapter_title);
 
@@ -1160,7 +1204,18 @@ class MangaChapterUploader {
         if (!current_user_can('upload_files')) {
             wp_send_json_error(array('message' => __('Permission denied', MCU_TEXT_DOMAIN)));
         }
-        $zip_file = isset($_FILES['zip_file']) ? $_FILES['zip_file'] : null;
+        $local_zip_path = isset($_POST['local_zip_path']) ? sanitize_text_field(wp_unslash($_POST['local_zip_path'])) : '';
+        if (!empty($local_zip_path) && file_exists($local_zip_path)) {
+            $zip_file = array(
+                'name' => basename($local_zip_path),
+                'tmp_name' => $local_zip_path,
+                'error' => UPLOAD_ERR_OK,
+                'size' => filesize($local_zip_path)
+            );
+        } else {
+            $zip_file = isset($_FILES['zip_file']) ? $_FILES['zip_file'] : null;
+        }
+
         if (!$zip_file) {
             wp_send_json_error(array('message' => __('No ZIP file uploaded', MCU_TEXT_DOMAIN)));
         }
@@ -1191,6 +1246,7 @@ class MangaChapterUploader {
         $manga_id = isset($_POST['manga_id']) ? intval($_POST['manga_id']) : 0;
         $chapter_category = isset($_POST['chapter_category']) ? intval($_POST['chapter_category']) : 0;
         $chapter_prefix = isset($_POST['chapter_prefix']) ? sanitize_text_field($_POST['chapter_prefix']) : 'chapter';
+        $chapter_index = isset($_POST['chapter_index']) ? intval($_POST['chapter_index']) : 0;
         if (empty($session_id) || empty($folder) || empty($manga_id)) {
             wp_send_json_error(array('message' => __('Missing parameters', MCU_TEXT_DOMAIN)));
         }
@@ -1198,7 +1254,7 @@ class MangaChapterUploader {
             include_once MCU_PLUGIN_DIR . 'manga-uploader-extensions.php';
             global $mcu_zip_processor;
             if ($mcu_zip_processor) {
-                $result = $mcu_zip_processor->process_single_chapter_from_session($session_id, $folder, $manga_id, $chapter_category, $chapter_prefix);
+                $result = $mcu_zip_processor->process_single_chapter_from_session($session_id, $folder, $manga_id, $chapter_category, $chapter_prefix, $chapter_index);
                 if ($result['success']) {
                     wp_send_json_success($result);
                 } else {

@@ -234,7 +234,7 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // ÇOKLU BÖLÜM YÜKLEME - AŞAMALI İŞLEME (Timeout önleme)
+    // ÇOKLU BÖLÜM YÜKLEME - AŞAMALI İŞLEME (Timeout önleme ve Parçalı Yükleme)
     $('#multiple-upload-form').submit(function(e) {
         e.preventDefault();
         if (!validateMultipleForm()) return false;
@@ -244,162 +244,223 @@ jQuery(document).ready(function($) {
         var chapterCategory = $('#multiple-chapter-category').val() || '';
         var chapterPrefix = $('#multiple-chapter-prefix').val() || 'chapter';
         var pushToLatest = $('input[name="push_to_latest"]:checked').val() === '1' ? '1' : '0';
+        var zipFile = $('#multiple-zip-file')[0].files[0];
         
         $('#upload-progress').show();
-        $('#upload-results').html('<div class="upload-result">ZIP yükleniyor ve çıkarılıyor...</div>');
+        $('#upload-results').html('<div class="upload-result">ZIP dosyası parçalara ayrılarak yükleniyor...</div>');
         $('#submit_multiple_chapters').prop('disabled', true);
         
-        // AŞAMA 1: ZIP'i yükle ve hazırla
-        var formData = new FormData(form);
-        formData.append('action', 'mcu_prepare_zip');
-        formData.append('nonce', mangaUploaderAjax.nonce);
+        // CHUNK UPLOAD DEĞİŞKENLERİ
+        var chunkSize = 2 * 1024 * 1024; // 2MB parçalar
+        var totalChunks = Math.ceil(zipFile.size / chunkSize);
+        var currentChunk = 0;
+        var uploadId = 'mcu_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         
-        $.ajax({
-            url: mangaUploaderAjax.ajaxurl,
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-            timeout: 300000,
-            xhr: function() {
-                var xhr = new window.XMLHttpRequest();
-                xhr.upload.addEventListener('progress', function(evt) {
-                    if (evt.lengthComputable) {
-                        var pct = Math.round((evt.loaded / evt.total) * 100);
+        function uploadNextChunk() {
+            var start = currentChunk * chunkSize;
+            var end = Math.min(start + chunkSize, zipFile.size);
+            var chunk = zipFile.slice(start, end);
+            
+            var chunkData = new FormData();
+            chunkData.append('action', 'mcu_chunk_upload');
+            chunkData.append('nonce', mangaUploaderAjax.nonce);
+            chunkData.append('upload_id', uploadId);
+            chunkData.append('chunk_index', currentChunk);
+            chunkData.append('total_chunks', totalChunks);
+            chunkData.append('filename', zipFile.name);
+            chunkData.append('chunk', chunk);
+            
+            $.ajax({
+                url: mangaUploaderAjax.ajaxurl,
+                type: 'POST',
+                data: chunkData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    if (response.success) {
+                        currentChunk++;
+                        var pct = Math.round((currentChunk / totalChunks) * 50); // ZIP upload represents first 50%
                         $('.progress-fill').css('width', pct + '%');
-                        $('#progress-text').text('Yükleme: ' + pct + '%');
+                        $('#progress-text').text('Yükleniyor: ' + currentChunk + '/' + totalChunks + ' parça');
+                        
+                        if (currentChunk < totalChunks) {
+                            uploadNextChunk();
+                        } else {
+                            completeChunkUpload();
+                        }
+                    } else {
+                        showError(response.data ? response.data.message : 'Parça yükleme hatası');
                     }
-                }, false);
-                return xhr;
-            },
-            success: function(response) {
-                if (!response.success) {
-                    $('#upload-progress').hide();
-                    $('#upload-results').html('<div class="upload-result upload-error">Hata: ' + (response.data ? response.data.message : 'Bilinmeyen hata') + '</div>');
-                    $('#submit_multiple_chapters').prop('disabled', false);
-                    return;
+                },
+                error: function(xhr, status, error) {
+                    showError('Sunucu bağlantı hatası (' + status + ')');
                 }
-                
-                // AŞAMA 2: SIRALI bölüm işleme (doğru sıralama için) - İYİLEŞTİRİLMİŞ
-                var sessionId = response.data.session_id;
-                var chapters = response.data.chapters;
-                var total = chapters.length;
-                var completed = 0;
-                var results = [];
-                var successCount = 0;
-                var currentIndex = 0;
-                
-                // Bölümleri sayısal sıraya koy (160, 161, 162 gibi)
-                chapters.sort(function(a, b) {
-                    return parseFloat(a.number) - parseFloat(b.number);
-                });
-                
-                $('#upload-results').html('<div class="upload-result">' + total + ' bölüm bulundu. Sıralı işleniyor (doğru sıralama): ' +
-                    chapters.map(function(c) { return c.number; }).join(', ') + '</div>');
-                
-                function updateProgress() {
-                    var pct = Math.round((completed / total) * 100);
-                    $('.progress-fill').css('width', pct + '%');
-                    var currentChapter = currentIndex < total ? chapters[currentIndex].number : 'N/A';
-                    $('#progress-text').text('İşleniyor: ' + completed + '/' + total + ' (' + pct + '%) - Şu an: Bölüm ' + currentChapter);
+            });
+        }
+        
+        function completeChunkUpload() {
+            $('#upload-results').html('<div class="upload-result">ZIP dosyası sunucuda birleştiriliyor...</div>');
+            $.post(mangaUploaderAjax.ajaxurl, {
+                action: 'mcu_chunk_complete',
+                nonce: mangaUploaderAjax.nonce,
+                upload_id: uploadId
+            }, function(response) {
+                if (response.success) {
+                    prepareZip(response.data.file_path);
+                } else {
+                    showError(response.data ? response.data.message : 'Birleştirme hatası');
                 }
-                
-                function finalize() {
-                    $.post(mangaUploaderAjax.ajaxurl, {
-                        action: 'mcu_finalize_upload',
-                        nonce: mangaUploaderAjax.nonce,
-                        session_id: sessionId,
-                        manga_id: mangaId,
-                        push_to_latest: pushToLatest
-                    }, function() {
-                        $('#upload-progress').hide();
-                        // Sonuçları sayısal sıraya koy
-                        results.sort(function(a, b) {
-                            return parseFloat(a.number) - parseFloat(b.number);
-                        });
-                        var html = '<div class="upload-result upload-success"><strong>Tamamlandı:</strong> ' + successCount + '/' + total + ' bölüm yüklendi.</div>';
-                        results.forEach(function(r) {
-                            if (r.success) {
-                                html += '<div class="upload-result upload-success-item">✓ Bölüm ' + r.number + ' (' + r.folder + ') <a href="' + r.link + '" target="_blank">Görüntüle</a></div>';
-                            } else {
-                                html += '<div class="upload-result upload-error-item">✗ Bölüm ' + r.number + ' (' + r.folder + '): ' + r.message + '</div>';
-                            }
-                        });
-                        $('#upload-results').html(html);
-                        $('#submit_multiple_chapters').prop('disabled', false);
-                        $('.progress-fill').css('width', '0%');
-                        $('#progress-text').text('');
-                        $('#zip-size-info').remove();
-                    });
-                }
-                
-                // SIRALI TEKLİ İŞLEME: Sıralama garantisi için
-                function processNextChapter() {
-                    // Tamamlandı mı kontrol et
-                    if (currentIndex >= total) {
-                        finalize();
+            }).fail(function() {
+                showError('Birleştirme sırasında sunucu hatası');
+            });
+        }
+        
+        function prepareZip(localZipPath) {
+            $('#upload-results').html('<div class="upload-result">ZIP dosyası çıkarılıyor ve okunuyor...</div>');
+            // DÜZELTME: new FormData(form) kullanılMAMALI çünkü dosya inputunu tekrar gönderir
+            // Sadece gerekli parametreleri gönder
+            var formData = new FormData();
+            formData.append('action', 'mcu_prepare_zip');
+            formData.append('nonce', mangaUploaderAjax.nonce);
+            formData.append('local_zip_path', localZipPath);
+            
+            $.ajax({
+                url: mangaUploaderAjax.ajaxurl,
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                timeout: 300000,
+                success: function(response) {
+                    if (!response.success) {
+                        showError(response.data ? response.data.message : 'Bilinmeyen hata');
                         return;
                     }
                     
-                    var chapter = chapters[currentIndex];
-                    var chapterNum = chapter.number;
-                    var chapterFolder = chapter.folder;
-                    currentIndex++;
+                    // AŞAMA 2: SIRALI bölüm işleme
+                    var sessionId = response.data.session_id;
+                    var chapters = response.data.chapters;
+                    var total = chapters.length;
+                    var completed = 0;
+                    var results = [];
+                    var successCount = 0;
+                    var currentIndex = 0;
                     
-                    $('#upload-results').append('<div id="chapter-' + chapterNum + '" class="chapter-processing">⚳ Bölüm ' + chapterNum + ' (' + chapterFolder + ') işleniyor... [' + currentIndex + '/' + total + ']</div>');
-                    
-                    $.post(mangaUploaderAjax.ajaxurl, {
-                        action: 'mcu_process_chapter',
-                        nonce: mangaUploaderAjax.nonce,
-                        session_id: sessionId,
-                        folder: chapterFolder,
-                        manga_id: mangaId,
-                        chapter_category: chapterCategory,
-                        chapter_prefix: chapterPrefix
-                    }).done(function(res) {
-                        var isSuccess = res && res.success;
-                        if (isSuccess) successCount++;
-                        results.push({
-                            folder: chapterFolder,
-                            number: chapterNum,
-                            success: isSuccess,
-                            message: res && res.data ? res.data.message : 'Hata',
-                            link: res && res.data ? res.data.post_link : ''
-                        });
-                        
-                        $('#chapter-' + chapterNum).removeClass('chapter-processing')
-                            .addClass(isSuccess ? 'chapter-success' : 'chapter-error')
-                            .html((isSuccess ? '✓' : '✗') + ' Bölüm ' + chapterNum + ' (' + chapterFolder + ') - ' +
-                                (isSuccess ? 'Başarılı!' : (res && res.data ? res.data.message : 'Hata')));
-                    }).fail(function() {
-                        results.push({
-                            folder: chapterFolder,
-                            number: chapterNum,
-                            success: false,
-                            message: 'Bağlantı hatası'
-                        });
-                        $('#chapter-' + chapterNum).removeClass('chapter-processing').addClass('chapter-error')
-                            .html('✗ Bölüm ' + chapterNum + ' (' + chapterFolder + ') - Bağlantı hatası');
-                    }).always(function() {
-                        completed++;
-                        updateProgress();
-                        
-                        // Hızlı sıralı işleme - minimum gecikme
-                        setTimeout(processNextChapter, 10);
+                    // Bölümleri sayısal sıraya koy
+                    chapters.sort(function(a, b) {
+                        return parseFloat(a.number) - parseFloat(b.number);
                     });
+                    
+                    $('#upload-results').html('<div class="upload-result">' + total + ' bölüm bulundu. Sıralı işleniyor: ' +
+                        chapters.map(function(c) { return c.number; }).join(', ') + '</div>');
+                    
+                    function updateProgress() {
+                        var processingPct = Math.round((completed / total) * 50);
+                        var totalPct = 50 + processingPct; // First 50% was upload
+                        $('.progress-fill').css('width', totalPct + '%');
+                        var currentChapter = currentIndex < total ? chapters[currentIndex].number : 'N/A';
+                        $('#progress-text').text('İşleniyor: ' + completed + '/' + total + ' (' + totalPct + '%) - Şu an: Bölüm ' + currentChapter);
+                    }
+                    
+                    function finalize() {
+                        $.post(mangaUploaderAjax.ajaxurl, {
+                            action: 'mcu_finalize_upload',
+                            nonce: mangaUploaderAjax.nonce,
+                            session_id: sessionId,
+                            manga_id: mangaId,
+                            push_to_latest: pushToLatest
+                        }, function() {
+                            $('#upload-progress').hide();
+                            results.sort(function(a, b) {
+                                return parseFloat(a.number) - parseFloat(b.number);
+                            });
+                            var html = '<div class="upload-result upload-success"><strong>Tamamlandı:</strong> ' + successCount + '/' + total + ' bölüm yüklendi.</div>';
+                            results.forEach(function(r) {
+                                if (r.success) {
+                                    html += '<div class="upload-result upload-success-item">✓ Bölüm ' + r.number + ' (' + r.folder + ') <a href="' + r.link + '" target="_blank">Görüntüle</a></div>';
+                                } else {
+                                    html += '<div class="upload-result upload-error-item">✗ Bölüm ' + r.number + ' (' + r.folder + '): ' + r.message + '</div>';
+                                }
+                            });
+                            $('#upload-results').html(html);
+                            $('#submit_multiple_chapters').prop('disabled', false);
+                            $('.progress-fill').css('width', '0%');
+                            $('#progress-text').text('');
+                            $('#zip-size-info').remove();
+                        });
+                    }
+                    
+                    function processNextChapter() {
+                        if (currentIndex >= total) {
+                            finalize();
+                            return;
+                        }
+                        
+                        var chapter = chapters[currentIndex];
+                        var chapterNum = chapter.number;
+                        var chapterFolder = chapter.folder;
+                        currentIndex++;
+                        
+                        $('#upload-results').append('<div id="chapter-' + chapterNum + '" class="chapter-processing">⚳ Bölüm ' + chapterNum + ' (' + chapterFolder + ') işleniyor... [' + currentIndex + '/' + total + ']</div>');
+                        
+                        $.post(mangaUploaderAjax.ajaxurl, {
+                            action: 'mcu_process_chapter',
+                            nonce: mangaUploaderAjax.nonce,
+                            session_id: sessionId,
+                            folder: chapterFolder,
+                            manga_id: mangaId,
+                            chapter_category: chapterCategory,
+                            chapter_prefix: chapterPrefix,
+                            chapter_index: currentIndex - 1,
+                            total_chapters: total
+                        }).done(function(res) {
+                            var isSuccess = res && res.success;
+                            if (isSuccess) successCount++;
+                            results.push({
+                                folder: chapterFolder,
+                                number: chapterNum,
+                                success: isSuccess,
+                                message: res && res.data ? res.data.message : 'Hata',
+                                link: res && res.data ? res.data.post_link : ''
+                            });
+                            
+                            $('#chapter-' + chapterNum).removeClass('chapter-processing')
+                                .addClass(isSuccess ? 'chapter-success' : 'chapter-error')
+                                .html((isSuccess ? '✓' : '✗') + ' Bölüm ' + chapterNum + ' (' + chapterFolder + ') - ' +
+                                    (isSuccess ? 'Başarılı!' : (res && res.data ? res.data.message : 'Hata')));
+                        }).fail(function() {
+                            results.push({
+                                folder: chapterFolder,
+                                number: chapterNum,
+                                success: false,
+                                message: 'Bağlantı hatası'
+                            });
+                            $('#chapter-' + chapterNum).removeClass('chapter-processing').addClass('chapter-error')
+                                .html('✗ Bölüm ' + chapterNum + ' (' + chapterFolder + ') - Bağlantı hatası');
+                        }).always(function() {
+                            completed++;
+                            updateProgress();
+                            setTimeout(processNextChapter, 10);
+                        });
+                    }
+                    
+                    updateProgress();
+                    processNextChapter();
+                },
+                error: function(xhr, status, error) {
+                    showError(status === 'timeout' ? 'ZIP işleme zaman aşımına uğradı' : error);
                 }
-                
-                // İlk bölümü başlat
-                updateProgress();
-                processNextChapter();
-            },
-            error: function(xhr, status, error) {
-                $('#upload-progress').hide();
-                var msg = status === 'timeout' ? 'ZIP yükleme zaman aşımına uğradı' : error;
-                $('#upload-results').html('<div class="upload-result upload-error">Hata: ' + msg + '</div>');
-                $('#submit_multiple_chapters').prop('disabled', false);
-            }
-        });
+            });
+        }
+        
+        function showError(msg) {
+            $('#upload-progress').hide();
+            $('#upload-results').html('<div class="upload-result upload-error">Hata: ' + msg + '</div>');
+            $('#submit_multiple_chapters').prop('disabled', false);
+        }
+        
+        // İşlemi başlat
+        uploadNextChunk();
     });
 
     // BLOGGER/WEB SİTESİNDEN ÇEKME
