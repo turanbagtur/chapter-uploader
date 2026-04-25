@@ -77,7 +77,7 @@ class MCU_ChunkUploader {
             'chunk_index' => $chunk_index,
             'uploaded' => count($meta['uploaded_chunks']),
             'total' => $total_chunks,
-            'progress' => round((count($meta['uploaded_chunks']) / $total_chunks) * 100, 2)
+            'progress' => $total_chunks > 0 ? round((count($meta['uploaded_chunks']) / $total_chunks) * 100, 2) : 0
         ));
     }
     
