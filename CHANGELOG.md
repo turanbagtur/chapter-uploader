@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.7.0] - 2026-06-22 - Security & Performance Update 🔒
+
+This update focuses on security improvements, performance optimizations, and code quality enhancements.
+
+### 🔒 Security Improvements
+- **Path Traversal Protection:** Added validation for chunk upload IDs (alphanumeric only) and local ZIP file paths to prevent directory traversal attacks
+- **File Extension Validation:** Chunk uploads now only accept ZIP files
+- **Rate Limiting:** Added rate limiting to ZIP preparation endpoint
+- **Secure Path Validation:** Chapter image cleanup now validates paths before deletion
+- **Nonce Consistency:** Unified nonce verification across all AJAX handlers
+
+### ⚡ Performance Optimizations
+- **Targeted Cache Clearing:** Replaced aggressive `wp_cache_flush()` calls with specific `clean_post_cache()` to avoid flushing entire object cache
+- **Optimized Option Loading:** Added `autoload=no` to large option data (logs, batch queue) to reduce wp_options table overhead
+- **Improved Duplicate Detection:** Chapter duplicate checking now uses floatval normalization (1 and 1.0 are treated as the same chapter)
+- **Reduced Timeout:** Changed `download_url()` timeout from 300 seconds to 30 seconds
+
+### 🧹 Code Quality
+- **Unified Title Creation:** Created shared `MangaChapterUploader::create_chapter_title()` and `MangaChapterUploader::get_prefix_text()` methods to eliminate code duplication
+- **Removed Duplicate Code:** Eliminated redundant cron schedule definitions
+- **Enhanced Validation:** Improved input validation across all handlers
+
+### 📚 Documentation
+- Updated README with new v1.7.0 security features
+- Added dedicated security section to documentation
+
+---
+
 ## [1.6.0] - 2026-04-25 - Performance & Stability Update 🚀
 
 This major update drastically improves bulk upload performance, resolves critical timeout issues with large ZIP files, and fixes chronologic sorting issues for bulk chapters.
