@@ -214,6 +214,42 @@ class MangaChapterUploader {
         
         return isset($prefix_map[$chapter_prefix]) ? $prefix_map[$chapter_prefix] : ucfirst($chapter_prefix);
     }
+    
+    /**
+     * Güvenli recursive dizin silme fonksiyonu.
+     * Path traversal saldırılarını önlemek için tasarlanmıştır.
+     */
+    private function safe_delete_directory($dir_path) {
+        if (!is_dir($dir_path)) {
+            return;
+        }
+        
+        try {
+            $items = @scandir($dir_path);
+            if ($items === false) {
+                @rmdir($dir_path);
+                return;
+            }
+            
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') continue;
+                
+                $item_path = $dir_path . DIRECTORY_SEPARATOR . $item;
+                
+                if (is_dir($item_path)) {
+                    $this->safe_delete_directory($item_path);
+                } else {
+                    @unlink($item_path);
+                }
+            }
+            
+            @rmdir($dir_path);
+            
+        } catch (Exception $e) {
+            MCU_Logger::debug('Directory cleanup notice: ' . $e->getMessage(), array('dir' => basename($dir_path)));
+            @rmdir($dir_path);
+        }
+    }
 
     public function create_admin_page() {
         $manga_posts = get_posts(array(
@@ -887,16 +923,10 @@ class MangaChapterUploader {
             }
         }
 
-        // 5. CACHE TEMİZLEME (hedefli - tüm cache'i silmek yerine sadece ilgili post'u temizle)
+        // 5. CACHE TEMİZLEME (hedefli - sadece ilgili post cache'ini temizle)
         clean_post_cache($manga_id);
         wp_cache_delete($manga_id, 'posts');
         wp_cache_delete($manga_id, 'post_meta');
-        
-        // Object cache - sadece ilgili grupları temizle (tüm cache'i silme!)
-        if (function_exists('wp_cache_flush_group')) {
-            wp_cache_flush_group('posts');
-            wp_cache_flush_group('post_meta');
-        }
 
         // 6. TÜM HOOK'LARI TETİKLE - TEMA DESTEĞİ İÇİN
         do_action('save_post', $manga_id, $manga_post, true);
@@ -987,6 +1017,11 @@ class MangaChapterUploader {
         $base_dir = $upload_dir['basedir'] . '/manga_chapters';
         $chapter_dir = $base_dir . '/' . $manga_id . '/ch_' . $chapter_number;
 
+        // Dizin yoksa temizlik yapılacak bir şey yok
+        if (!is_dir($chapter_dir)) {
+            return;
+        }
+
         // Güvenlik: Path'in beklenen dizin içinde olduğunu doğrula
         $real_chapter_dir = realpath($chapter_dir);
         $real_base_dir = realpath($base_dir);
@@ -998,40 +1033,24 @@ class MangaChapterUploader {
             return;
         }
 
-        if (is_dir($chapter_dir)) {
-            // Güvenli recursive silme - extensions.php'deki fonksiyonu kullan
-            if (class_exists('MCU_ZipProcessor')) {
-                $zip_processor = new MCU_ZipProcessor();
-                $zip_processor->safe_recursive_delete($chapter_dir);
-            } else {
-                // Fallback: Manuel temizlik
-                $files = glob($chapter_dir . '/*');
-                if ($files) {
-                    foreach ($files as $file) {
-                        if (is_file($file)) {
-                            @unlink($file);
-                        }
-                    }
-                }
-                @rmdir($chapter_dir);
-            }
+        // Güvenli recursive silme
+        $this->safe_delete_directory($chapter_dir);
 
-            MCU_Logger::info('Chapter images cleaned up on delete', array(
-                'post_id' => $post_id,
-                'manga_id' => $manga_id,
-                'chapter' => $chapter_number,
-                'dir' => $chapter_dir
-            ));
+        MCU_Logger::info('Chapter images cleaned up on delete', array(
+            'post_id' => $post_id,
+            'manga_id' => $manga_id,
+            'chapter' => $chapter_number,
+            'dir' => $chapter_dir
+        ));
 
-            // Manga klasörü boşsa onu da sil
-            $manga_dir = $base_dir . '/' . $manga_id;
-            $real_manga_dir = realpath($manga_dir);
-            if ($real_manga_dir !== false && strpos($real_manga_dir, $real_base_dir) === 0) {
-                $remaining = @scandir($manga_dir);
-                $remaining = array_diff($remaining, array('.', '..'));
-                if (empty($remaining)) {
-                    @rmdir($manga_dir);
-                }
+        // Manga klasörü boşsa onu da sil
+        $manga_dir = $base_dir . '/' . $manga_id;
+        $real_manga_dir = realpath($manga_dir);
+        if ($real_manga_dir !== false && strpos($real_manga_dir, $real_base_dir) === 0) {
+            $remaining = @scandir($manga_dir);
+            $remaining = array_diff($remaining, array('.', '..'));
+            if (empty($remaining)) {
+                @rmdir($manga_dir);
             }
         }
     }

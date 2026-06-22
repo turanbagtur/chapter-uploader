@@ -178,11 +178,8 @@ class MCU_ZipProcessor {
                 );
             }
             
-            // BELLEK TEMİZLEME: Her bölümden sonra sadece ilgili post cache'ini temizle (tüm cache'i silme!)
-            // Not: wp_cache_flush() çok agresif, sadece gerekli cache'i temizle
-            if (function_exists('wp_cache_delete')) {
-                wp_cache_delete('all', 'posts');
-            }
+            // Bellek temizleme: Her bölümden sonra temizlik yap
+            // Not: clean_post_cache ve wp_cache_delete zaten yeterli
         }
 
         // ANA SAYFA GÜNCELLEMESİNİ SADECE FİNALİZE'DA YAP (Sıralama karışmasın diye)
