@@ -138,7 +138,7 @@ class MCU_Logger {
         }
         
         if ($days_old <= 7) {
-            update_option('mcu_recent_logs', array());
+            update_option('mcu_recent_logs', array(), false);
         }
         
         return $deleted;

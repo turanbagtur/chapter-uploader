@@ -1,6 +1,6 @@
 # Manga Chapter Uploader
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/turanbagtur/chapter-uploader)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/turanbagtur/chapter-uploader)
 [![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)](https://wordpress.org)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-GPL2-green.svg)](LICENSE)
@@ -52,19 +52,30 @@ MangaReader temaları için özel olarak tasarlanmış, çoklu kaynaklardan mang
 - **Lazy Loading Support**: Handles modern image loading techniques
 
 #### 🛡️ Advanced Features
-- **NEW in v1.4.0:** Advanced logging system for debugging
-- **NEW in v1.4.0:** Enhanced error handling and recovery mechanisms
+- **Advanced logging system** for debugging
+- **Enhanced error handling** and recovery mechanisms
 - **Image Optimization**: Automatic WebP conversion and progressive JPEG
 - **Watermark Protection**: Built-in image protection (optional)
-- **Cache Management**: Automatic cache clearing for immediate updates
-- **FIXED in v1.4.0:** Scheduled post issues - all chapters now publish immediately
+- **Cache Management**: Targeted cache clearing (improved in v1.5.0)
+- **Scheduled Publishing**: Set future publish dates for chapters
+
+#### 🔒 Security (v1.5.0 Improvements)
+- CSRF protection with consistent nonce verification
+- File type validation (ZIP-only for chunk uploads)
+- Size limit enforcement
+- User permission checks
+- Safe file naming conventions
+- **Path traversal protection** for chunk uploads and local zip paths
+- **Upload ID validation** (alphanumeric only)
+- **Rate limiting** on ZIP preparation endpoint
+- **Secure path validation** in chapter image cleanup
 
 #### 📊 Statistics & Management
 - **Upload Analytics**: Track total chapters, images, and storage usage
 - **Monthly Reports**: Detailed monthly upload statistics
 - **Orphaned Media Cleanup**: Automatic cleanup of unused media files
-- **NEW in v1.4.0:** Enhanced debugging with comprehensive logging
-- **NEW in v1.4.0:** Advanced error tracking and reporting
+- **Enhanced debugging** with comprehensive logging
+- **Advanced error tracking** and reporting
 
 ### 💻 Installation
 
@@ -94,7 +105,7 @@ The plugin uses these meta fields for MangaReader theme compatibility:
 ```
 
 #### Settings Options
-- **NEW in v1.4.0:** Configurable ZIP file size limits (100MB - 5GB)
+- **Configurable ZIP file size limits** (100MB - 5GB)
 - **Chapter Prefix**: Default prefix for chapter titles (Chapter, Bölüm, etc.)
 - **Auto Homepage Push**: Automatically update manga on homepage
 - **Image Quality**: JPEG compression settings (85%-100%)
@@ -247,19 +258,30 @@ manga_chapters.zip
 - **Lazy Loading Desteği**: Modern resim yükleme tekniklerini işleme
 
 #### 🛡️ Gelişmiş Özellikler
-- **YENİ v1.4.0'da:** Debug için gelişmiş loglama sistemi
-- **YENİ v1.4.0'da:** Gelişmiş hata yönetimi ve kurtarma mekanizmaları
+- **Gelişmiş loglama sistemi** hata ayıklama için
+- **Gelişmiş hata yönetimi** ve kurtarma mekanizmaları
 - **Resim Optimizasyonu**: Otomatik WebP dönüştürme ve progressive JPEG
 - **Filigran Koruması**: Yerleşik resim koruması (opsiyonel)
-- **Önbellek Yönetimi**: Anında güncellemeler için otomatik önbellek temizleme
-- **DÜZELTİLDİ v1.4.0'da:** Zamanlanmış post sorunları - tüm bölümler artık anında yayınlanıyor
+- **Önbellek Yönetimi**: Hedefli önbellek temizleme (v1.5.0'da geliştirildi)
+- **Programlanmış Yayınlama**: Gelecek yayın tarihleri belirleme
+
+#### 🔒 Güvenlik (v1.5.0 İyileştirmeleri)
+- Tutarlı nonce doğrulaması ile CSRF koruması
+- Dosya türü doğrulama (chunk yüklemelerde sadece ZIP)
+- Boyut sınırı zorlaması
+- Kullanıcı izin kontrolleri
+- Güvenli dosya adlandırma kuralları
+- **Path traversal koruması** chunk yüklemeler ve yerel zip yolları için
+- **Yükleme Kimliği doğrulaması** (sadece alfanumerik)
+- **Rate limiting** ZIP hazırlama endpoint'inde
+- **Güvenli path doğrulama** bölüm görsel temizlemede
 
 #### 📊 İstatistikler ve Yönetim
 - **Yükleme Analitiği**: Toplam bölüm, resim ve depolama kullanımı takibi
 - **Aylık Raporlar**: Detaylı aylık yükleme istatistikleri
 - **Sahipsiz Medya Temizliği**: Kullanılmayan medya dosyalarının otomatik temizliği
-- **YENİ v1.4.0'da:** Kapsamlı loglama ile geliştirilmiş hata ayıklama
-- **YENİ v1.4.0'da:** Gelişmiş hata izleme ve raporlama
+- **Kapsamlı loglama** ile geliştirilmiş hata ayıklama
+- **Gelişmiş hata izleme** ve raporlama
 
 ### 💻 Kurulum
 

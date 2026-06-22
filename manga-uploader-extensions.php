@@ -178,8 +178,11 @@ class MCU_ZipProcessor {
                 );
             }
             
-            // BELLEK TEMİZLEME: Her bölümden sonra cache temizle
-            if (function_exists('wp_cache_flush')) wp_cache_flush();
+            // BELLEK TEMİZLEME: Her bölümden sonra sadece ilgili post cache'ini temizle (tüm cache'i silme!)
+            // Not: wp_cache_flush() çok agresif, sadece gerekli cache'i temizle
+            if (function_exists('wp_cache_delete')) {
+                wp_cache_delete('all', 'posts');
+            }
         }
 
         // ANA SAYFA GÜNCELLEMESİNİ SADECE FİNALİZE'DA YAP (Sıralama karışmasın diye)
@@ -248,16 +251,31 @@ class MCU_ZipProcessor {
     }
     
     private function chapter_exists($manga_id, $chapter_number) {
+        // Chapter number'ı floatval ile normalize et (1 ve 1.0 aynı bölüm)
+        $normalized_chapter = floatval($chapter_number);
+        
         $existing = get_posts(array(
             'post_type' => 'post',
             'meta_query' => array(
-                array('key' => 'ero_seri', 'value' => $manga_id, 'compare' => '='),
-                array('key' => 'ero_chapter', 'value' => $chapter_number, 'compare' => '=')
+                array('key' => 'ero_seri', 'value' => $manga_id, 'compare' => '=')
             ),
-            'posts_per_page' => 1
+            'posts_per_page' => -1,
+            'fields' => 'ids'
         ));
         
-        return !empty($existing);
+        if (empty($existing)) {
+            return false;
+        }
+        
+        // Her bir post'un chapter meta değerini normalize ederek kontrol et
+        foreach ($existing as $post_id) {
+            $existing_chapter = get_post_meta($post_id, 'ero_chapter', true);
+            if ($existing_chapter !== '' && floatval($existing_chapter) == $normalized_chapter) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     private function get_images_from_folder($folder_path) {
@@ -404,26 +422,8 @@ class MCU_ZipProcessor {
             }
         }
 
-        // Başlık oluşturma - Gelen chapter_prefix'i kullan
-        $manga_title = get_the_title($manga_id);
-        $prefix_map = array(
-            'chapter' => 'Chapter',
-            'bolum' => 'Bölüm',
-            'bölüm' => 'Bölüm',
-            'chapitre' => 'Chapitre',
-            'capitulo' => 'Capítulo',
-            'kapittel' => 'Kapittel',
-            'adhyay' => 'अध्याय',
-            'fasl' => 'فصل',
-            'zhang' => '章'
-        );
-        
-        $prefix_text = isset($prefix_map[$chapter_prefix]) ? $prefix_map[$chapter_prefix] : ucfirst($chapter_prefix);
-        $post_title = sprintf('%s %s %s', $manga_title, $prefix_text, $chapter_number);
-        
-        if (!empty($chapter_title)) {
-            $post_title .= ' - ' . $chapter_title;
-        }
+        // Başlık oluşturma - Ana plugin'deki paylaşılan fonksiyonu kullan
+        $post_title = MangaChapterUploader::create_chapter_title($manga_id, $chapter_prefix, $chapter_number, $chapter_title);
 
         // SIRALI POST TARİHİ HESAPLAMA - BATCH INDEX TABANLI (v2)
         // Artık mutlak bölüm numarası değil, batch içindeki sıra (0, 1, 2, ...) kullanılır.
@@ -613,11 +613,10 @@ class MCU_ZipProcessor {
             }
         }
 
-        // Cache ve transient temizle
+        // Cache ve transient temizle (hedefli - tüm cache'i silme)
         clean_post_cache($manga_id);
         wp_cache_delete($manga_id, 'posts');
         wp_cache_delete($manga_id, 'post_meta');
-        if (function_exists('wp_cache_flush')) wp_cache_flush();
         
         // Transient temizle
         delete_transient('manga_latest_updates');

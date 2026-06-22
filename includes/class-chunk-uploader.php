@@ -12,6 +12,7 @@ class MCU_ChunkUploader {
     
     private $chunk_size = 2097152; // 2MB
     private $temp_dir;
+    private $allowed_extensions = array('zip');
     
     public function __construct() {
         $upload_dir = wp_upload_dir();
@@ -44,7 +45,26 @@ class MCU_ChunkUploader {
         $total_chunks = isset($_POST['total_chunks']) ? intval($_POST['total_chunks']) : 0;
         $filename = isset($_POST['filename']) ? sanitize_file_name($_POST['filename']) : '';
         
-        if (empty($upload_id) || !isset($_FILES['chunk'])) {
+        // Security: Validate upload_id - only alphanumeric and underscore
+        $upload_id = preg_replace('/[^a-zA-Z0-9_]/', '', $upload_id);
+        if (empty($upload_id)) {
+            wp_send_json_error(array('message' => __('Invalid upload session ID', 'manga-chapter-uploader')));
+        }
+        
+        // Security: Validate filename extension - only ZIP files allowed
+        if (!empty($filename)) {
+            $file_ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            if (!in_array($file_ext, $this->allowed_extensions)) {
+                wp_send_json_error(array('message' => __('Invalid file type. Only ZIP files are allowed.', 'manga-chapter-uploader')));
+            }
+        }
+        
+        // Security: Validate chunk index is within expected range
+        if ($chunk_index < 0 || $chunk_index >= $total_chunks || $total_chunks > 10000) {
+            wp_send_json_error(array('message' => __('Invalid chunk data', 'manga-chapter-uploader')));
+        }
+        
+        if (!isset($_FILES['chunk'])) {
             wp_send_json_error(array('message' => __('Invalid chunk data', 'manga-chapter-uploader')));
         }
         
@@ -89,6 +109,13 @@ class MCU_ChunkUploader {
         }
         
         $upload_id = isset($_POST['upload_id']) ? sanitize_text_field($_POST['upload_id']) : '';
+        
+        // Security: Validate upload_id - only alphanumeric and underscore
+        $upload_id = preg_replace('/[^a-zA-Z0-9_]/', '', $upload_id);
+        if (empty($upload_id)) {
+            wp_send_json_error(array('message' => __('Invalid upload session ID', 'manga-chapter-uploader')));
+        }
+        
         $upload_dir = $this->temp_dir . '/' . $upload_id;
         $meta_file = $upload_dir . '/meta.json';
         
@@ -142,6 +169,13 @@ class MCU_ChunkUploader {
         check_ajax_referer('manga_uploader_nonce', 'nonce');
         
         $upload_id = isset($_POST['upload_id']) ? sanitize_text_field($_POST['upload_id']) : '';
+        
+        // Security: Validate upload_id - only alphanumeric and underscore
+        $upload_id = preg_replace('/[^a-zA-Z0-9_]/', '', $upload_id);
+        if (empty($upload_id)) {
+            wp_send_json_error(array('message' => __('Invalid upload session ID', 'manga-chapter-uploader')));
+        }
+        
         $upload_dir = $this->temp_dir . '/' . $upload_id;
         
         if (is_dir($upload_dir)) {

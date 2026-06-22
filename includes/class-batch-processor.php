@@ -60,7 +60,7 @@ class MCU_BatchProcessor {
         $task['attempts'] = 0;
         
         $queue[$task_id] = $task;
-        update_option($this->queue_option, $queue);
+        update_option($this->queue_option, $queue, false);
         
         MCU_Logger::info('Task added to queue', array('task_id' => $task_id, 'type' => $task['type']));
         
@@ -93,7 +93,7 @@ class MCU_BatchProcessor {
             // Task'ı işleniyor olarak işaretle
             $queue[$task_id]['status'] = 'processing';
             $queue[$task_id]['started_at'] = time();
-            update_option($this->queue_option, $queue);
+            update_option($this->queue_option, $queue, false);
             
             // Task'ı işle
             $result = $this->process_task($task);
@@ -117,7 +117,7 @@ class MCU_BatchProcessor {
                 }
             }
             
-            update_option($this->queue_option, $queue);
+            update_option($this->queue_option, $queue, false);
             $processed++;
         }
         
@@ -290,7 +290,7 @@ class MCU_BatchProcessor {
             }
         }
         
-        update_option($this->queue_option, $queue);
+        update_option($this->queue_option, $queue, false);
     }
     
     public function ajax_add_to_queue() {
@@ -352,7 +352,7 @@ class MCU_BatchProcessor {
             wp_send_json_error(array('message' => __('Permission denied', 'manga-chapter-uploader')));
         }
         
-        update_option($this->queue_option, array());
+        update_option($this->queue_option, array(), false);
         
         wp_send_json_success(array('message' => __('Queue cleared', 'manga-chapter-uploader')));
     }

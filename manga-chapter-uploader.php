@@ -3,7 +3,7 @@
  * Plugin Name: Manga Chapter Uploader
  * Plugin URI: https://mangaruhu.com
  * Description: MangaReader theme compatible single and multiple manga chapter upload plugin with internationalization support.
- * Version: 1.6.0
+ * Version: 1.7.0
  * Author: Solderet
  * Author URI: https://mangaruhu.com
  * License: GPL2
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin sabitlerini tanımla
-define('MCU_VERSION', '1.6.0');
+define('MCU_VERSION', '1.7.0');
 define('MCU_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MCU_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('MCU_TEXT_DOMAIN', 'manga-chapter-uploader');
@@ -184,15 +184,26 @@ class MangaChapterUploader {
         wp_enqueue_media();
     }
 
-    // Bölüm başlığını oluşturan yeni fonksiyon
-    private function create_chapter_title($manga_id, $chapter_prefix, $chapter_number, $chapter_title = '') {
+    // Bölüm başlığını oluşturan fonksiyon - tüm modüllerden erişilebilir
+    public static function create_chapter_title($manga_id, $chapter_prefix, $chapter_number, $chapter_title = '') {
         $manga_title = get_the_title($manga_id);
         
-        // Prefix mapping ile Türkçe karakterleri koru
+        $prefix_text = self::get_prefix_text($chapter_prefix);
+        $post_title = sprintf('%s %s %s', $manga_title, $prefix_text, $chapter_number);
+        
+        if (!empty($chapter_title)) {
+            $post_title .= ' - ' . $chapter_title;
+        }
+        
+        return $post_title;
+    }
+    
+    // Prefix mapping ile Türkçe karakterleri koru - tüm modüllerden erişilebilir
+    public static function get_prefix_text($chapter_prefix) {
         $prefix_map = array(
             'chapter' => 'Chapter',
-            'bolum' => 'Bölüm',  // Türkçe karakter korundu
-            'bölüm' => 'Bölüm',  // Doğrudan Türkçe girişi de destekle
+            'bolum' => 'Bölüm',
+            'bölüm' => 'Bölüm',
             'chapitre' => 'Chapitre',
             'capitulo' => 'Capítulo',
             'kapittel' => 'Kapittel',
@@ -201,14 +212,7 @@ class MangaChapterUploader {
             'zhang' => '章'
         );
         
-        $prefix_text = isset($prefix_map[$chapter_prefix]) ? $prefix_map[$chapter_prefix] : ucfirst($chapter_prefix);
-        $post_title = sprintf('%s %s %s', $manga_title, $prefix_text, $chapter_number);
-        
-        if (!empty($chapter_title)) {
-            $post_title .= ' - ' . $chapter_title;
-        }
-        
-        return $post_title;
+        return isset($prefix_map[$chapter_prefix]) ? $prefix_map[$chapter_prefix] : ucfirst($chapter_prefix);
     }
 
     public function create_admin_page() {
@@ -883,21 +887,15 @@ class MangaChapterUploader {
             }
         }
 
-        // 5. GÜÇLÜ CACHE TEMİZLEME
+        // 5. CACHE TEMİZLEME (hedefli - tüm cache'i silmek yerine sadece ilgili post'u temizle)
         clean_post_cache($manga_id);
         wp_cache_delete($manga_id, 'posts');
         wp_cache_delete($manga_id, 'post_meta');
         
-        // Object cache temizle
+        // Object cache - sadece ilgili grupları temizle (tüm cache'i silme!)
         if (function_exists('wp_cache_flush_group')) {
             wp_cache_flush_group('posts');
             wp_cache_flush_group('post_meta');
-            wp_cache_flush_group('themes');
-        }
-        
-        // Tüm cache'i temizle
-        if (function_exists('wp_cache_flush')) {
-            wp_cache_flush();
         }
 
         // 6. TÜM HOOK'LARI TETİKLE - TEMA DESTEĞİ İÇİN
@@ -986,20 +984,37 @@ class MangaChapterUploader {
         }
 
         $upload_dir = wp_upload_dir();
-        $chapter_dir = $upload_dir['basedir'] . '/manga_chapters/' . $manga_id . '/ch_' . $chapter_number;
+        $base_dir = $upload_dir['basedir'] . '/manga_chapters';
+        $chapter_dir = $base_dir . '/' . $manga_id . '/ch_' . $chapter_number;
+
+        // Güvenlik: Path'in beklenen dizin içinde olduğunu doğrula
+        $real_chapter_dir = realpath($chapter_dir);
+        $real_base_dir = realpath($base_dir);
+        if ($real_chapter_dir === false || $real_base_dir === false || strpos($real_chapter_dir, $real_base_dir) !== 0) {
+            MCU_Logger::warning('Invalid path in cleanup_chapter_images_on_delete', array(
+                'post_id' => $post_id,
+                'chapter_dir' => $chapter_dir
+            ));
+            return;
+        }
 
         if (is_dir($chapter_dir)) {
-            // Klasördeki tüm dosyaları sil
-            $files = glob($chapter_dir . '/*');
-            if ($files) {
-                foreach ($files as $file) {
-                    if (is_file($file)) {
-                        @unlink($file);
+            // Güvenli recursive silme - extensions.php'deki fonksiyonu kullan
+            if (class_exists('MCU_ZipProcessor')) {
+                $zip_processor = new MCU_ZipProcessor();
+                $zip_processor->safe_recursive_delete($chapter_dir);
+            } else {
+                // Fallback: Manuel temizlik
+                $files = glob($chapter_dir . '/*');
+                if ($files) {
+                    foreach ($files as $file) {
+                        if (is_file($file)) {
+                            @unlink($file);
+                        }
                     }
                 }
+                @rmdir($chapter_dir);
             }
-            // Klasörü sil
-            @rmdir($chapter_dir);
 
             MCU_Logger::info('Chapter images cleaned up on delete', array(
                 'post_id' => $post_id,
@@ -1009,19 +1024,21 @@ class MangaChapterUploader {
             ));
 
             // Manga klasörü boşsa onu da sil
-            $manga_dir = $upload_dir['basedir'] . '/manga_chapters/' . $manga_id;
-            $remaining = glob($manga_dir . '/*');
-            if (empty($remaining)) {
-                @rmdir($manga_dir);
+            $manga_dir = $base_dir . '/' . $manga_id;
+            $real_manga_dir = realpath($manga_dir);
+            if ($real_manga_dir !== false && strpos($real_manga_dir, $real_base_dir) === 0) {
+                $remaining = @scandir($manga_dir);
+                $remaining = array_diff($remaining, array('.', '..'));
+                if (empty($remaining)) {
+                    @rmdir($manga_dir);
+                }
             }
         }
     }
 
     // UPLOAD FONKSİYONLARI
     public function handle_single_chapter_upload() {
-        if (!check_ajax_referer('manga_uploader_nonce', 'nonce', false)) {
-            wp_send_json_error(array('message' => __('Security check failed', MCU_TEXT_DOMAIN)));
-        }
+        check_ajax_referer('manga_uploader_nonce', 'nonce');
         
         if (!current_user_can('upload_files')) {
             wp_send_json_error(array('message' => __('You do not have permission to upload files', MCU_TEXT_DOMAIN)));
@@ -1056,16 +1073,30 @@ class MangaChapterUploader {
             $chapter_category = $this->get_manga_category($manga_title);
         }
 
+        // Chapter number'ı floatval ile normalize et (1 ve 1.0 aynı bölüm)
+        $normalized_chapter = floatval($chapter_number);
+
         $existing_chapter = get_posts(array(
             'post_type' => 'post',
             'meta_query' => array(
-                array('key' => 'ero_seri', 'value' => $manga_id, 'compare' => '='),
-                array('key' => 'ero_chapter', 'value' => $chapter_number, 'compare' => '=')
+                array('key' => 'ero_seri', 'value' => $manga_id, 'compare' => '=')
             ),
-            'posts_per_page' => 1
+            'posts_per_page' => -1,
+            'fields' => 'ids'
         ));
 
+        $chapter_exists = false;
         if (!empty($existing_chapter)) {
+            foreach ($existing_chapter as $post_id) {
+                $existing_chapter_num = get_post_meta($post_id, 'ero_chapter', true);
+                if ($existing_chapter_num !== '' && floatval($existing_chapter_num) == $normalized_chapter) {
+                    $chapter_exists = true;
+                    break;
+                }
+            }
+        }
+
+        if ($chapter_exists) {
             wp_send_json_error(array('message' => sprintf(__('Chapter %s already exists.', MCU_TEXT_DOMAIN), $chapter_number)));
         }
 
@@ -1151,9 +1182,7 @@ class MangaChapterUploader {
     }
 
     public function handle_multiple_chapters_upload() {
-        if (!check_ajax_referer('manga_uploader_nonce', 'nonce', false)) {
-            wp_send_json_error(array('message' => __('Security check failed', MCU_TEXT_DOMAIN)));
-        }
+        check_ajax_referer('manga_uploader_nonce', 'nonce');
         
         if (!current_user_can('upload_files')) {
             wp_send_json_error(array('message' => __('You do not have permission to upload files', MCU_TEXT_DOMAIN)));
@@ -1204,7 +1233,33 @@ class MangaChapterUploader {
         if (!current_user_can('upload_files')) {
             wp_send_json_error(array('message' => __('Permission denied', MCU_TEXT_DOMAIN)));
         }
+        
+        // Rate limiting kontrolü
+        global $mcu_rate_limiter;
+        if ($mcu_rate_limiter) {
+            $rate_check = $mcu_rate_limiter->check_limit('upload_zip', get_current_user_id());
+            if (is_wp_error($rate_check)) {
+                MCU_Logger::warning('Rate limit hit on prepare_zip', array('user_id' => get_current_user_id()));
+                wp_send_json_error(array('message' => $rate_check->get_error_message()));
+            }
+        }
+        
         $local_zip_path = isset($_POST['local_zip_path']) ? sanitize_text_field(wp_unslash($_POST['local_zip_path'])) : '';
+        
+        // Security: Validate local_zip_path is within uploads directory
+        if (!empty($local_zip_path) && file_exists($local_zip_path)) {
+            $upload_dir = wp_upload_dir();
+            $real_path = realpath($local_zip_path);
+            $real_upload_dir = realpath($upload_dir['basedir']);
+            
+            if ($real_path === false || $real_upload_dir === false || strpos($real_path, $real_upload_dir) !== 0) {
+                MCU_Logger::warning('Invalid local_zip_path attempt', array('path' => $local_zip_path));
+                $local_zip_path = '';
+            }
+        } else {
+            $local_zip_path = '';
+        }
+        
         if (!empty($local_zip_path) && file_exists($local_zip_path)) {
             $zip_file = array(
                 'name' => basename($local_zip_path),
@@ -1216,7 +1271,7 @@ class MangaChapterUploader {
             $zip_file = isset($_FILES['zip_file']) ? $_FILES['zip_file'] : null;
         }
 
-        if (!$zip_file) {
+        if (!$zip_file || (is_array($zip_file) && $zip_file['error'] !== UPLOAD_ERR_OK && empty($local_zip_path))) {
             wp_send_json_error(array('message' => __('No ZIP file uploaded', MCU_TEXT_DOMAIN)));
         }
         if (file_exists(MCU_PLUGIN_DIR . 'manga-uploader-extensions.php')) {
@@ -1285,8 +1340,10 @@ class MangaChapterUploader {
     }
 
     public function handle_blogger_fetch() {
-        if (!check_ajax_referer('manga_uploader_nonce', 'nonce', false)) {
-            wp_send_json_error(array('message' => __('Security check failed', MCU_TEXT_DOMAIN)));
+        check_ajax_referer('manga_uploader_nonce', 'nonce');
+        
+        if (!current_user_can('upload_files')) {
+            wp_send_json_error(array('message' => __('You do not have permission to perform this action', MCU_TEXT_DOMAIN)));
         }
 
         $blogger_url = isset($_POST['blogger_url']) ? esc_url_raw($_POST['blogger_url']) : '';
@@ -1338,7 +1395,7 @@ class MangaChapterUploader {
         }
 
         foreach ($image_urls as $img_url) {
-            $temp_file = download_url($img_url, 300, false);
+            $temp_file = download_url($img_url, 30, false);
 
             if (!is_wp_error($temp_file)) {
                 $filename = $this->generate_safe_filename($img_url);
